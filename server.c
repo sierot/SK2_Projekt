@@ -49,13 +49,87 @@ int main(int argc, char* argv[]){
                        	printf("ERROR (c_sck): %s\n", strerror(errno));
                 	exit(EXIT_FAILURE);
 		}
-
-		//potwierdzenie polaczenia
-		printf("Polaczony z: %s\n", inet_ntoa((struct in_addr)c_addr.sin_addr));	
 		
+		//potwierdzenie polaczenia
+		printf("Polaczony z: %s.\n", inet_ntoa((struct in_addr)c_addr.sin_addr));	
+		
+		//alokowanie pamieci dla macierzy A
+		int** matrixA = (int**)malloc(4 * sizeof(int*));
+		int i;
+		for(i = 0; i<4; i++){
+			matrixA[i] = (int*)malloc(4 * sizeof(int));
+		}
+		
+		//alokowanie pamieci dla macierzy B
+		int** matrixB = (int**)malloc(4 * sizeof(int*));
+                for(i = 0; i<4; i++){
+                        matrixB[i] = (int*)malloc(4 * sizeof(int));
+                }
+		
+		//nadanie wartosci macierza A i B
+		int j;
+		for(i = 0; i<4; i++){
+			for(j = 0; j<4; j++){
+				matrixA[i][j] = 4*i + j;
+				matrixB[i][j] = 4*i + j;
+			}
+		}
+
+		//wyswietlanie macierzy A i B
+		printf("\nMatrixA:\n");
+	        for(i = 0; i<4; i++){
+                        for(j = 0; j<4; j++){
+                                printf("%d ",  matrixA[i][j]);
+                        }
+			printf("\n");
+                }
+
+		printf("\nMatrixB:\n");
+		for(i = 0; i<4; i++){
+                        for(j = 0; j<4; j++){
+                                printf("%d ",  matrixA[i][j]);
+                        }
+                        printf("\n");
+                }
+
+		//wyslanie macierzy A i B wiersz po wierszu
+		for(i = 0; i<4; i++){		
+			write(c_sck, matrixA[i], 16);		
+			write(c_sck, matrixB[i], 16);
+		}
+
+		//dealokacja pamieci macierzy A i B
+		free(matrixA);
+		free(matrixB);
+
+		//alokacja pamieci dla macierzy C
+		int** matrixC = (int**)malloc(4 * sizeof(int*));
+                for(i = 0; i<4; i++){
+                        matrixC[i] = (int*)malloc(4 * sizeof(int));
+                }
+
+		//odczyt wartosci wyliczonej macierzy wiersz po wierszu
+		for(i = 0; i<4; i++){
+                        read(c_sck, matrixC[i], 16);
+                }
+		
+		//wyswietlanie macierzy wynikowej C
+		printf("\nMatrixC:\n");
+		for(i = 0; i<4; i++){
+                        for(j = 0; j<4; j++){
+                                printf("%d ",  matrixC[i][j]);
+                        }
+                        printf("\n");
+                }
+
+		//dealokacja pamieci macierzy C
+		free(matrixC);
+
 		getchar();
+
+		//zamykanie deskryptorow
 		close(sck);
-	
+		close(c_sck);
 		return 0; 
 
 } 
