@@ -9,6 +9,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+#include "matrixLoader.h"
+
 int main(int argc, char* argv[]){
 		
 		//tworzenie gniazda (otrzymanie deskryptora sck)	
@@ -53,49 +55,68 @@ int main(int argc, char* argv[]){
 		//potwierdzenie polaczenia
 		printf("Polaczony z: %s.\n", inet_ntoa((struct in_addr)c_addr.sin_addr));	
 		
+
+		//tablice przechowujace rozmiar macierzy A i B
+		int sizeA[2];
+		int sizeB[2];		
+		
+		//pobieranie do talbic wartosci z pliku txt (matrixLoader.c)
+		loadSize("Amatrix.txt", sizeA);
+                loadSize("Bmatrix.txt", sizeB);
+
+		//warunek konieczny mnozenia macierzy
+		if(sizeA[1] != sizeB[0]){
+			printf("ERROR: Nie moge pomnozyc macierzy o takich wymiarach");
+        	        close(sck);
+	                close(c_sck);
+			exit(EXIT_FAILURE);
+		}
+
 		//alokowanie pamieci dla macierzy A
-		int** matrixA = (int**)malloc(4 * sizeof(int*));
+		float** matrixA = (float**)malloc(sizeA[0] * sizeof(float*));
 		int i;
-		for(i = 0; i<4; i++){
-			matrixA[i] = (int*)malloc(4 * sizeof(int));
+		for(i = 0; i<sizeA[0]; i++){
+			matrixA[i] = (float*)malloc(sizeA[1] * sizeof(float));
 		}
 		
 		//alokowanie pamieci dla macierzy B
-		int** matrixB = (int**)malloc(4 * sizeof(int*));
-                for(i = 0; i<4; i++){
-                        matrixB[i] = (int*)malloc(4 * sizeof(int));
+		float** matrixB = (float**)malloc(sizeB[0] * sizeof(float*));
+                for(i = 0; i<sizeB[0]; i++){
+                        matrixB[i] = (float*)malloc(sizeB[1] * sizeof(float));
                 }
-		
-		//nadanie wartosci macierza A i B
-		int j;
-		for(i = 0; i<4; i++){
-			for(j = 0; j<4; j++){
-				matrixA[i][j] = 4*i + j;
-				matrixB[i][j] = 4*i + j;
-			}
-		}
 
+		//wczytanie macierzy z pliku txt (matrixLoader.c)
+		loadFile("Amatrix.txt", matrixA, sizeA);
+		loadFile("Bmatrix.txt", matrixB, sizeB);
+		
+		int j;
 		//wyswietlanie macierzy A i B
 		printf("\nMatrixA:\n");
-	        for(i = 0; i<4; i++){
-                        for(j = 0; j<4; j++){
-                                printf("%d ",  matrixA[i][j]);
+	        for(i = 0; i<sizeA[0]; i++){
+                        for(j = 0; j<sizeA[1]; j++){
+                                printf("%f ",  matrixA[i][j]);
                         }
 			printf("\n");
                 }
 
 		printf("\nMatrixB:\n");
-		for(i = 0; i<4; i++){
-                        for(j = 0; j<4; j++){
-                                printf("%d ",  matrixA[i][j]);
+		for(i = 0; i<sizeB[0]; i++){
+                        for(j = 0; j<sizeB[1]; j++){
+                                printf("%f ",  matrixB[i][j]);
                         }
                         printf("\n");
                 }
-
+		
+		//wysylamy klientowi rozmiary macierz A i B
+		write(c_sck, sizeA, 8);
+		write(c_sck, sizeB, 8);
+		
 		//wyslanie macierzy A i B wiersz po wierszu
-		for(i = 0; i<4; i++){		
-			write(c_sck, matrixA[i], 16);		
-			write(c_sck, matrixB[i], 16);
+		for(i = 0; i < sizeA[0]; i++){		
+			write(c_sck, matrixA[i], 4 * sizeA[1]);
+		}
+		for(i = 0; i < sizeB[0]; i++){	
+			write(c_sck, matrixB[i], 4 * sizeB[1]);
 		}
 
 		//dealokacja pamieci macierzy A i B
@@ -103,21 +124,21 @@ int main(int argc, char* argv[]){
 		free(matrixB);
 
 		//alokacja pamieci dla macierzy C
-		int** matrixC = (int**)malloc(4 * sizeof(int*));
-                for(i = 0; i<4; i++){
-                        matrixC[i] = (int*)malloc(4 * sizeof(int));
+		float** matrixC = (float**)malloc(sizeA[0] * sizeof(float*));
+                for(i = 0; i<sizeA[0]; i++){
+                        matrixC[i] = (float*)malloc(sizeB[1] * sizeof(float));
                 }
 
 		//odczyt wartosci wyliczonej macierzy wiersz po wierszu
-		for(i = 0; i<4; i++){
-                        read(c_sck, matrixC[i], 16);
+		for(i = 0; i<sizeA[0] ; i++){
+                        read(c_sck, matrixC[i], 4 * sizeB[1]);
                 }
 		
 		//wyswietlanie macierzy wynikowej C
 		printf("\nMatrixC:\n");
-		for(i = 0; i<4; i++){
-                        for(j = 0; j<4; j++){
-                                printf("%d ",  matrixC[i][j]);
+		for(i = 0; i<sizeA[0]; i++){
+                        for(j = 0; j<sizeB[1]; j++){
+                                printf("%f ",  matrixC[i][j]);
                         }
                         printf("\n");
                 }

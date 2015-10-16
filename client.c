@@ -35,53 +35,62 @@ int main(int argc, char* argv[]){
 		}else{
 			printf("Polaczony z serwerem.\n");
 		}
+		//tablice przechowujace rozmiary macierzy A i B
+		int sizeA[2];
+		int sizeB[2];		
 		
-		//alokacja pamieci dla macierzy A i B
-		int** matrixA = (int**)malloc(4 * sizeof(int*));
-                int i;
-                for(i = 0; i<4; i++){
-                       matrixA[i] = (int*)malloc(4 * sizeof(int));
-                }
-		
-                int** matrixB = (int**)malloc(4 * sizeof(int*));
-                for(i = 0; i<4; i++){
-                        matrixB[i] = (int*)malloc(4 * sizeof(int));
-                }
+		//odczytujemy z serwera rozmiary macierzy A i B
+		read(sck, sizeA, 8);
+		read(sck, sizeB, 8);
 
+		//alokacja pamieci dla macierzy A i B
+		float** matrixA = (float**)malloc(sizeA[0] * sizeof(float*));
+                int i;
+                for(i = 0; i < sizeA[0]; i++){
+                       matrixA[i] = (float*)malloc(sizeA[1] * sizeof(float));
+                }
+		
+                float** matrixB = (float**)malloc(sizeB[0] * sizeof(float*));
+                for(i = 0; i < sizeB[0]; i++){
+                        matrixB[i] = (float*)malloc(sizeB[1] * sizeof(float));
+                }
+		
 		//odczyt macierzy A i B
-		for(i = 0; i<4; i++){
-			read(sck, matrixA[i], 16);
-			read(sck, matrixB[i], 16);
+		for(i = 0; i < sizeA[0]; i++){
+				read(sck, matrixA[i], 4 * sizeA[1]);
+		}
+		for(i = 0; i < sizeB[0]; i++){
+				read(sck, matrixB[i], 4 * sizeB[1]);
 		}
 		
 		//wyswietlanie macierzy A i B
 		int j;
 		printf("\nMatrixA:\n");
-		for(i = 0; i<4; i++){
-                        for(j = 0; j<4; j++){
-                                printf("%d ",  matrixA[i][j]);
+		for(i = 0; i<sizeA[0]; i++){
+                        for(j = 0; j<sizeA[1]; j++){
+                                printf("%f ",  matrixA[i][j]);
                         }
                         printf("\n");
                 }
 		printf("\nMatrixB:\n");
-		for(i = 0; i<4; i++){
-                        for(j = 0; j<4; j++){
-                                printf("%d ",  matrixB[i][j]);
+		for(i = 0; i<sizeB[0]; i++){
+                        for(j = 0; j<sizeB[1]; j++){
+                                printf("%f ",  matrixB[i][j]);
                         }
                       	printf("\n");
                 }
 		
 		//alokowanie pamieci dla macierzy C
-		int** matrixC = (int**)malloc(4 * sizeof(int*));
-                for(i = 0; i<4; i++){
-                        matrixC[i] = (int*)malloc(4 * sizeof(int));
+		float** matrixC = (float**)malloc(sizeA[0] * sizeof(float*));
+                for(i = 0; i < sizeA[0]; i++){
+                        matrixC[i] = (float*)malloc(sizeB[1] * sizeof(float));
                 }
 
 		//mnozenie macierzy A i B (A x B = C)
 		int k;
-		for(i = 0; i<4; i++){
-			for(j = 0; j<4; j++){
-				for(k = 0; k<4; k++){
+		for(i = 0; i < sizeA[0]; i++){
+			for(j = 0; j < sizeB[1]; j++){
+				for(k = 0; k<sizeA[1]; k++){
 				matrixC[i][j] += matrixA[i][k] * matrixB[k][j];
 				}
 			}
@@ -89,17 +98,17 @@ int main(int argc, char* argv[]){
 
 		//wyswietlanie macierzy wynikowej C
 		printf("\nMatrixC:\n");
-                for(i = 0; i<4; i++){
-                        for(j = 0; j<4; j++){
-                                printf("%d ",  matrixC[i][j]);
+                for(i = 0; i < sizeA[0]; i++){
+                        for(j = 0; j < sizeB[1]; j++){
+                                printf("%f ",  matrixC[i][j]);
                         }
                         printf("\n");
                 }
 
 
 		//wysylanie macierzy wynikowej C
-		for(i = 0; i<4; i++){
-			write(sck, matrixC[i], 16);
+		for(i = 0; i<sizeA[0]; i++){
+			write(sck, matrixC[i], 4 * sizeB[1]);
 		}
 
 		//dealokacja pamieci macierzy A,B i C
