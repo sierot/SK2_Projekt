@@ -62,12 +62,34 @@ int main(int argc, char* argv[]){
 		
 		//potwierdzenie polaczenia
 		printf("Polaczony z: %s.\n", inet_ntoa((struct in_addr)c_addr.sin_addr));	
+
+		 printf("Oczekuje na polaczenie...\n");
+                int c_sck2 = accept(sck, (struct sockaddr*)&c_addr, &nTmp);
+                if(c_sck2 < 0){
+                        printf("ERROR (c_sck2): %s\n", strerror(errno));
+                        exit(EXIT_FAILURE);
+                }
+
+                //potwierdzenie polaczenia
+                printf("Polaczony z: %s.\n", inet_ntoa((struct in_addr)c_addr.sin_addr));
+
+
 		
 		//PROTOTYP
-                int comp_no = 1; //liczba klientow (tymczasowe)
+		int c;
+                int comp_no = 2; //liczba klientow (tymczasowe)
 		struct client* clients_tab = malloc (comp_no * sizeof(struct client));
-		clients_tab[0].c_sck = c_sck;
-		clients_tab[0].client_id = 0;
+		//for(c = 0; c < comp_no; c++){
+			clients_tab[0].c_sck = c_sck;
+			clients_tab[0].client_id = 0;
+		//}
+
+		//PROTOTYP
+                //for(c = 0; c < comp_no; c++){
+                        clients_tab[1].c_sck = c_sck2;
+                        clients_tab[1].client_id = 1;
+                //}
+
 
 		//tablice przechowujace rozmiar macierzy A i B
 		int sizeA[2];
@@ -136,7 +158,7 @@ int main(int argc, char* argv[]){
 		divide(comp_no, sizeB[1], sizeA[0], tabi, tabj);
 		
 		 for(i = 0; i < comp_no; i++){
-                	printf("Procesor %d ma przedzial: i:[%d,%d]   j:[%d,%d]\n", i, tabi[i][0], tabi[i][1], tabj[i][0], tabj[i][1]);
+                	printf("Klient %d ma przedzial: i:[%d,%d]   j:[%d,%d]\n", i, tabi[i][0], tabi[i][1], tabj[i][0], tabj[i][1]);
         	}
 
 		//prywatne rozmiary macierzy A i B dla kazdego klienta
@@ -145,32 +167,42 @@ int main(int argc, char* argv[]){
 		//int privSizeB[2];
 		
 		//(FOR) do wyliczenia nie potrzebujemy calej tablicy (wystarczy czesc)
-		clients_tab[0].privSizeA[0] = tabi[clients_tab[0].client_id][1] - tabi[clients_tab[0].client_id][0] + 1;
-		clients_tab[0].privSizeB[1] = tabj[clients_tab[0].client_id][1] - tabj[clients_tab[0].client_id][0] + 1;
-
+		for(c = 0; c < comp_no; c++){
+			clients_tab[c].privSizeA[0] = tabi[clients_tab[c].client_id][1] - tabi[clients_tab[c].client_id][0] + 1;
+			clients_tab[c].privSizeB[1] = tabj[clients_tab[c].client_id][1] - tabj[clients_tab[c].client_id][0] + 1;
+		}
+		
 		//(FOR) ale zeby wyliczyc dany element potrzebujemy obu calych wierszy
-		clients_tab[0].privSizeA[1] = sizeA[1];
-		clients_tab[0].privSizeB[0] = sizeB[0];
+		for(c = 0; c < comp_no; c++){
+			clients_tab[c].privSizeA[1] = sizeA[1];
+			clients_tab[c].privSizeB[0] = sizeB[0];
+		}
 		
-		printf("clients_tab[0].privSizeA: [%d,%d]\n", clients_tab[0].privSizeA[0], clients_tab[0].privSizeA[1]);
-		printf("clients_tab[0].privSizeB: [%d,%d]\n", clients_tab[0].privSizeB[0], clients_tab[0].privSizeB[1]);
-
+		for(c = 0; c < comp_no; c++){
+			printf("clients_tab[%d].privSizeA: [%d,%d]\n", c, clients_tab[c].privSizeA[0], clients_tab[c].privSizeA[1]);
+			printf("clients_tab[%d].privSizeB: [%d,%d]\n", c, clients_tab[c].privSizeB[0], clients_tab[c].privSizeB[1]);
+		}
 		//(FOR)wysylamy klientowi rozmiary jego macierzy A i B
-		write(clients_tab[0].c_sck, clients_tab[0].privSizeA, 8);
-		write(clients_tab[0].c_sck, clients_tab[0].privSizeB, 8);
+		for(c = 0; c < comp_no; c++){
+			write(clients_tab[c].c_sck, clients_tab[c].privSizeA, 8);
+			write(clients_tab[c].c_sck, clients_tab[c].privSizeB, 8);
+		}
 		
-		//int k;
 		//wyslanie macierzy A i B element po elemencie
 		for(i = 0; i < sizeA[0]; i++){
 			for(j = 0; j < sizeA[1]; j++){
-					if((i >= tabi[clients_tab[0].client_id][0]) && (i <= tabi[clients_tab[0].client_id][1]))
-						write(clients_tab[0].c_sck, &matrixA[i][j], 4);
+					for(c = 0; c < comp_no; c++){
+						if((i >= tabi[clients_tab[c].client_id][0]) && (i <= tabi[clients_tab[c].client_id][1]))
+							write(clients_tab[c].c_sck, &matrixA[i][j], 4);
+					}
 			}
 		}
 		for(i = 0; i < sizeB[0]; i++){	
 			for(j = 0; j < sizeB[1]; j++){
-				 if((j >= tabj[clients_tab[0].client_id][0]) && (j <= tabj[clients_tab[0].client_id][1]))
-                                	 write(clients_tab[0].c_sck, &matrixB[i][j], 4);
+				for(c = 0; c < comp_no; c++){
+					if((j >= tabj[clients_tab[c].client_id][0]) && (j <= tabj[clients_tab[c].client_id][1]))
+                                		 write(clients_tab[c].c_sck, &matrixB[i][j], 4);
+				}
 			}
 		}
 
@@ -187,8 +219,10 @@ int main(int argc, char* argv[]){
 		//odczyt wartosci wyliczonej macierzy element po elemencie
                 for(i = 0; i < sizeA[0]; i++){
                         for(j = 0; j < sizeB[1]; j++){
-                                        if((i >= tabi[clients_tab[0].client_id][0]) && (i <= tabi[clients_tab[0].client_id][1]) && (j >= tabj[clients_tab[0].client_id][0]) && (j <= tabj[clients_tab[0].client_id][1]))
-                                                read(clients_tab[0].c_sck, &matrixC[i][j], 4);
+					for(c = 0; c < comp_no; c++){
+                                        if((i >= tabi[clients_tab[c].client_id][0]) && (i <= tabi[clients_tab[c].client_id][1]) && (j >= tabj[clients_tab[c].client_id][0]) && (j <= tabj[clients_tab[c].client_id][1]))
+                                                	read(clients_tab[c].c_sck, &matrixC[i][j], 4);
+					}
                         }
                 }
 
