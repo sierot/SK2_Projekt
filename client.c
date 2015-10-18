@@ -54,17 +54,21 @@ int main(int argc, char* argv[]){
                 for(i = 0; i < sizeB[0]; i++){
                         matrixB[i] = (float*)malloc(sizeB[1] * sizeof(float));
                 }
-		
+		int j;
 		//odczyt macierzy A i B
 		for(i = 0; i < sizeA[0]; i++){
-				read(sck, matrixA[i], 4 * sizeA[1]);
+			for(j = 0; j < sizeA[1]; j++){
+				read(sck, &matrixA[i][j], 4);
+			}
 		}
 		for(i = 0; i < sizeB[0]; i++){
-				read(sck, matrixB[i], 4 * sizeB[1]);
+			for(j = 0; j < sizeB[1]; j++){
+				read(sck, &matrixB[i][j], 4);
+			}
 		}
 		
 		//wyswietlanie macierzy A i B
-		int j;
+		//int j;
 		printf("\nMatrixA:\n");
 		for(i = 0; i<sizeA[0]; i++){
                         for(j = 0; j<sizeA[1]; j++){
