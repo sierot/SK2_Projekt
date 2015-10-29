@@ -8,6 +8,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <time.h>
 
 #include "matrixLoader.h"
 #include "division.h"
@@ -33,6 +34,10 @@ int main(int argc, char* argv[]){
                 addr.sin_family = AF_INET; //protokol IPv4
                 addr.sin_port = htons(23000); //port
                 addr.sin_addr.s_addr = htonl(INADDR_ANY); //adres IPv4 klienta
+		
+		int nFoo = 1; //dowiedz sie czo to sa za czary
+		setsockopt(sck, SOL_SOCKET, SO_REUSEADDR, (char*)&nFoo, sizeof(nFoo));
+
 
 		//wiazanie gniazda z deskryptorem sck z wykorzystaniem struktury sockaddr_in
 		int bnd = bind(sck, (struct sockaddr*) &addr, sizeof(struct sockaddr));
@@ -51,53 +56,39 @@ int main(int argc, char* argv[]){
 		//deklaracja struktur potrzebnych do odboru polaczenia od klienta
 		struct sockaddr_in c_addr; //struktura do informacji o gniezdzie kliencie
 		int nTmp = sizeof(struct sockaddr); //aby nie bylo warninga ;)
-
-		//oczekiwanie na connect(...) ze strony klienta i odebranie deskryptora do klienta		
-		printf("Oczekuje na polaczenie...\n");
-		int c_sck = accept(sck, (struct sockaddr*)&c_addr, &nTmp);
-		if(c_sck < 0){
-                       	printf("ERROR (c_sck): %s\n", strerror(errno));
-                	exit(EXIT_FAILURE);
+		
+		int i;
+		int comp_no = 1; //liczba klientow
+		int* sck_tab = (int*) malloc (comp_no * sizeof(int));
+		for(i = 0; i < comp_no; i++){
+			//oczekiwanie na connect(...) ze strony klienta i odebranie deskryptora do klienta		
+			printf("Oczekuje na polaczenie...\n");
+			sck_tab[i] = accept(sck, (struct sockaddr*)&c_addr, &nTmp);
+			if(sck_tab[i] < 0){
+                       		printf("ERROR (c_sck[%d]): %s\n", i, strerror(errno));
+                		exit(EXIT_FAILURE);
+			}
+			//potwierdzenie polaczenia
+                        printf("Polaczony z: %s.\n", inet_ntoa((struct in_addr)c_addr.sin_addr));
 		}
-		
-		//potwierdzenie polaczenia
-		printf("Polaczony z: %s.\n", inet_ntoa((struct in_addr)c_addr.sin_addr));	
-
-		 printf("Oczekuje na polaczenie...\n");
-                int c_sck2 = accept(sck, (struct sockaddr*)&c_addr, &nTmp);
-                if(c_sck2 < 0){
-                        printf("ERROR (c_sck2): %s\n", strerror(errno));
-                        exit(EXIT_FAILURE);
-                }
-
-                //potwierdzenie polaczenia
-                printf("Polaczony z: %s.\n", inet_ntoa((struct in_addr)c_addr.sin_addr));
-
-
-		
+			
 		//PROTOTYP
 		int c;
-                int comp_no = 2; //liczba klientow (tymczasowe)
-		struct client* clients_tab = malloc (comp_no * sizeof(struct client));
-		//for(c = 0; c < comp_no; c++){
-			clients_tab[0].c_sck = c_sck;
-			clients_tab[0].client_id = 0;
-		//}
-
-		//PROTOTYP
-                //for(c = 0; c < comp_no; c++){
-                        clients_tab[1].c_sck = c_sck2;
-                        clients_tab[1].client_id = 1;
-                //}
-
+                struct client* clients_tab = malloc (comp_no * sizeof(struct client));
+		for(c = 0; c < comp_no; c++){
+			clients_tab[c].c_sck = sck_tab[c];
+			clients_tab[c].client_id = c;
+		}
 
 		//tablice przechowujace rozmiar macierzy A i B
 		int sizeA[2];
 		int sizeB[2];		
 		
+		clock_t read_start, read_stop, start, stop, write_start, write_stop;
+                read_start = clock();
 		//pobieranie do talbic wartosci z pliku txt (matrixLoader.c)
-		loadSize("Amatrix.txt", sizeA);
-                loadSize("Bmatrix.txt", sizeB);
+		loadSize("Amatrix", sizeA);
+                loadSize("Bmatrix", sizeB);
 
 		//warunek konieczny mnozenia macierzy
 		if(sizeA[1] != sizeB[0]){
@@ -109,7 +100,6 @@ int main(int argc, char* argv[]){
 
 		//alokowanie pamieci dla macierzy A
 		float** matrixA = (float**)malloc(sizeA[0] * sizeof(float*));
-		int i;
 		for(i = 0; i<sizeA[0]; i++){
 			matrixA[i] = (float*)malloc(sizeA[1] * sizeof(float));
 		}
@@ -121,12 +111,12 @@ int main(int argc, char* argv[]){
                 }
 
 		//wczytanie macierzy z pliku txt (matrixLoader.c)
-		loadFile("Amatrix.txt", matrixA, sizeA);
-		loadFile("Bmatrix.txt", matrixB, sizeB);
-		
+		loadFile("Amatrix", matrixA, sizeA);
+		loadFile("Bmatrix", matrixB, sizeB);
+		read_stop = clock();
 		int j;
 		//wyswietlanie macierzy A i B
-		printf("\nMatrixA:\n");
+		/*printf("\nMatrixA:\n");
 	        for(i = 0; i<sizeA[0]; i++){
                         for(j = 0; j<sizeA[1]; j++){
                                 printf("%f ",  matrixA[i][j]);
@@ -140,7 +130,7 @@ int main(int argc, char* argv[]){
                                 printf("%f ",  matrixB[i][j]);
                         }
                         printf("\n");
-                }
+                }*/
 		
 	        //tablice przechowujace granice procesorow
 	        //granice klientow to wspolrzedne w macierzy mowiace jakie elementy dany procesor bedzie mial wyliczyc
@@ -160,11 +150,6 @@ int main(int argc, char* argv[]){
 		 for(i = 0; i < comp_no; i++){
                 	printf("Klient %d ma przedzial: i:[%d,%d]   j:[%d,%d]\n", i, tabi[i][0], tabi[i][1], tabj[i][0], tabj[i][1]);
         	}
-
-		//prywatne rozmiary macierzy A i B dla kazdego klienta
-		//int client_id = 0; //kazdy klient ma swoje id (0, 1, 2...)
-		//int privSizeA[2];
-		//int privSizeB[2];
 		
 		//(FOR) do wyliczenia nie potrzebujemy calej tablicy (wystarczy czesc)
 		for(c = 0; c < comp_no; c++){
@@ -178,10 +163,13 @@ int main(int argc, char* argv[]){
 			clients_tab[c].privSizeB[0] = sizeB[0];
 		}
 		
-		for(c = 0; c < comp_no; c++){
+		/*for(c = 0; c < comp_no; c++){
 			printf("clients_tab[%d].privSizeA: [%d,%d]\n", c, clients_tab[c].privSizeA[0], clients_tab[c].privSizeA[1]);
 			printf("clients_tab[%d].privSizeB: [%d,%d]\n", c, clients_tab[c].privSizeB[0], clients_tab[c].privSizeB[1]);
-		}
+		}*/
+
+		//start liczenia czasu		
+		start = clock();
 		//(FOR)wysylamy klientowi rozmiary jego macierzy A i B
 		for(c = 0; c < comp_no; c++){
 			write(clients_tab[c].c_sck, clients_tab[c].privSizeA, 8);
@@ -209,13 +197,13 @@ int main(int argc, char* argv[]){
 		//dealokacja pamieci macierzy A i B
 		free(matrixA);
 		free(matrixB);
-
+		stop = clock();
 		//alokacja pamieci dla macierzy C
 		float** matrixC = (float**)malloc(sizeA[0] * sizeof(float*));
                 for(i = 0; i<sizeA[0]; i++){
                         matrixC[i] = (float*)malloc(sizeB[1] * sizeof(float));
                 }
-		
+		write_start = clock();
 		//odczyt wartosci wyliczonej macierzy element po elemencie
                 for(i = 0; i < sizeA[0]; i++){
                         for(j = 0; j < sizeB[1]; j++){
@@ -227,23 +215,53 @@ int main(int argc, char* argv[]){
                 }
 
 		//wyswietlanie macierzy wynikowej C
-		printf("\nMatrixC:\n");
+		/*printf("\nMatrixC:\n");
 		for(i = 0; i<sizeA[0]; i++){
                         for(j = 0; j<sizeB[1]; j++){
                                 printf("%f ",  matrixC[i][j]);
                         }
                         printf("\n");
-                }
+                }*/
+		write_stop = clock();
+		clock_t t_stop;
+		
+		/*char buf[20];
+		char enter = '\n';
+		char przecinek = ',';
+		//zapis macierzy wynikowej C
+                
+		int desc = open("Cmatrix", O_WRONLY);
+                for(i = 0; i<sizeA[0]; i++){
+                        for(j = 0; j<sizeB[1]; j++){
+                                snprintf (buf, sizeof(buf), "%f", matrixC[i][j]);
+				write(desc, buf, 9);
+				memset (buf, 0, sizeof(buf));
+				if(j != sizeB[1] - 1){
+					write(desc, &przecinek, 1);
+				}
 
+                        }
+                        write(desc, &enter, 1);
+                }*/
+		int desc = open("Cmatrix", O_WRONLY, O_CREAT, 777);
+		for(i = 0; i < sizeA[0]; i++){
+			write(desc, matrixC[i], 4*sizeB[1]);
+		}
+		t_stop = clock();
+		printf("Czas przetwarzania: %f sekund.\n", ((double)(t_stop-read_start)/1000000.0));
+                printf("Czas wczytywania z pliku: %f sekund.\n", ((double)(read_stop-read_start)/1000000.0));
+                printf("Czas wysylania: %f sekund.\n", ((double)(stop-start)/1000000.0));
+                printf("Czas odbioru: %f sekund.\n", ((double)(write_stop-write_start)/1000000.0));
+		printf("Czas zapisu do pliku: %f sekund.\n",((double)(t_stop-write_stop)/1000000.0));
 		//dealokacja pamieci macierzy C
 		free(matrixC);
-
-		getchar();
+		close(desc);
+		//getchar();
 
 		//zamykanie deskryptorow
 		close(sck);
-		close(c_sck);
+		for(i = 0; i < comp_no; i++)
+			close(sck_tab[i]);
 		return 0; 
 
 } 
-

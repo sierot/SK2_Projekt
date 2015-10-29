@@ -8,6 +8,21 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <time.h>
+#include <omp.h>
+
+//funkcja transponujaca macierz
+void transpose(float **matrixB, float **matrixBT, int* size){
+	int i, j;
+	#pragma omp parallel for private(j)
+	for(i = 0; i < size[0]; i++){
+		for(j = 0; j<size[1]; j++){
+			matrixBT[i][j] = matrixB[j][i];
+		}
+	}
+
+}
+
 
 int main(int argc, char* argv[]){
 		
@@ -55,6 +70,9 @@ int main(int argc, char* argv[]){
                         matrixB[i] = (float*)malloc(sizeB[1] * sizeof(float));
                 }
 		int j;
+		//liczymy czas
+		double read_start, read_stop, start, stop, write_start, write_stop;
+		read_start = omp_get_wtime();
 		//odczyt macierzy A i B
 		for(i = 0; i < sizeA[0]; i++){
 			for(j = 0; j < sizeA[1]; j++){
@@ -66,10 +84,9 @@ int main(int argc, char* argv[]){
 				read(sck, &matrixB[i][j], 4);
 			}
 		}
-		
+		read_stop = omp_get_wtime();
 		//wyswietlanie macierzy A i B
-		//int j;
-		printf("\nMatrixA:\n");
+		/*printf("\nMatrixA:\n");
 		for(i = 0; i<sizeA[0]; i++){
                         for(j = 0; j<sizeA[1]; j++){
                                 printf("%f ",  matrixA[i][j]);
@@ -82,45 +99,70 @@ int main(int argc, char* argv[]){
                                 printf("%f ",  matrixB[i][j]);
                         }
                       	printf("\n");
-                }
+                }*/
 		
 		//alokowanie pamieci dla macierzy C
 		float** matrixC = (float**)malloc(sizeA[0] * sizeof(float*));
                 for(i = 0; i < sizeA[0]; i++){
                         matrixC[i] = (float*)malloc(sizeB[1] * sizeof(float));
                 }
-
+		start = omp_get_wtime();
 		//mnozenie macierzy A i B (A x B = C)
+		float** matrixBT = (float**)malloc(sizeB[0] * sizeof(float*));
+                for(i = 0; i < sizeA[0]; i++){
+                        matrixBT[i] = (float*)malloc(sizeB[1] * sizeof(float));
+                }
+
+		transpose(matrixB, matrixBT, sizeB); //transponujemy macierz dla szybszego dostepu do pamieci
 		int k;
+		/*printf("\nMatrixBT:\n");
+                for(i = 0; i<sizeB[0]; i++){
+                        for(j = 0; j<sizeB[1]; j++){
+                                printf("%f ",  matrixBT[i][j]);
+                        }
+                        printf("\n");
+                }*/
+
+		#pragma omp parallel
+		{
+		int i, j, k;
+		#pragma omp for
 		for(i = 0; i < sizeA[0]; i++){
 			for(j = 0; j < sizeB[1]; j++){
+				matrixC[i][j] = 0;
 				for(k = 0; k<sizeA[1]; k++){
-				matrixC[i][j] += matrixA[i][k] * matrixB[k][j];
+					matrixC[i][j] += (matrixA[i][k] * matrixBT[j][k]);
 				}
 			}
 		}
-
+		}
+		stop = omp_get_wtime();
 		//wyswietlanie macierzy wynikowej C
-		printf("\nMatrixC:\n");
+		/*printf("\nMatrixC:\n");
                 for(i = 0; i < sizeA[0]; i++){
                         for(j = 0; j < sizeB[1]; j++){
                                 printf("%f ",  matrixC[i][j]);
                         }
                         printf("\n");
-                }
+                }*/
 
-
+		write_start = omp_get_wtime();
 		//wysylanie macierzy wynikowej C
 		for(i = 0; i<sizeA[0]; i++){
 			write(sck, matrixC[i], 4 * sizeB[1]);
 		}
+		write_stop = omp_get_wtime();
+		printf("Czas przetwarzania: %f sekund.\n", ((write_stop-read_start)));
+		printf("Czas wczytywania: %f sekund.\n", ((read_stop-read_start)));
+		printf("Czas mnozenia: %f sekund.\n", ((stop-start)));
+		printf("Czas wysylania: %f sekund.\n", ((write_stop-write_start)));
 
 		//dealokacja pamieci macierzy A,B i C
 		free(matrixA);
 		free(matrixB);
 		free(matrixC);
 
-		getchar();
+		//getchar();
 		
 		//zamykanie deskryptorow
 		close(sck);

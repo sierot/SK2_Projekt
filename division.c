@@ -10,7 +10,31 @@ void divide(int comp_no, int szer, int wys, int** tabi, int** tabj){
 	przedzialy[0] = 1;
 	przedzialy[1] = 1;
 	int k = 2;
+	
 	int d = 1;
+	
+	int roznica = comp_temp - 1;
+        przedzialy[1] = comp_temp;
+        for(k = 2; k <= pierw; k++){
+                if((comp_temp % k) == 0){
+                        if(roznica > (comp_temp/k - k)){
+                                roznica = (comp_temp/k - k);
+                                if(szer >= wys){
+                                        przedzialy[0] = k;
+                                        przedzialy[1] = comp_temp/k;
+                                }else{
+                                        przedzialy[0] = comp_temp/k;
+                                        przedzialy[1] = k;
+                                }
+                        } 
+                }
+        }
+	
+	printf("przedzialy[0] = %d\n", przedzialy[0]);
+        printf("przedzialy[1] = %d\n", przedzialy[1]);
+	
+	
+	/*k = 2;
 	//rozkaladamy na czynniki pierwsze i potem odpowiednio dzielimy macierz
 	while((comp_temp > 1) && (k < pierw)){
 		if(comp_temp % k == 0){
@@ -30,11 +54,10 @@ void divide(int comp_no, int szer, int wys, int** tabi, int** tabj){
         }else{  
                 przedzialy[1] *= comp_temp;
         }
-
-
+	
 	printf("przedzialy[0] = %d\n", przedzialy[0]);
 	printf("przedzialy[1] = %d\n", przedzialy[1]);
-	
+	*/
         //wyznaczamy szerokosci i wysokosci przedzialow
         int szer_przedz = szer/przedzialy[1];
         int wys_przedz = wys/przedzialy[0];

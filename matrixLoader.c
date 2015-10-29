@@ -7,7 +7,7 @@ void loadSize(char* path, int* lincol){
                 printf("ERROR (desc): %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
         }
-
+	/*
 	//alokacja pamieci potrzebej do odczytania rozmiaru
         char* buf = (char*)malloc(20 * sizeof(char));
         char* c = (char*)malloc(sizeof(char));
@@ -30,10 +30,13 @@ void loadSize(char* path, int* lincol){
                         index++; //zwiekszamy indeks w buforze
                 }
         }
+	*/
+	read(desc, lincol, 8);
+
 	//sprzatamy po sobie
 	close(desc);
-	free(buf);
-	free(c);
+	//free(buf);
+	//free(c);
 }
 
 void loadFile(char* path, float** matrix, int* size){
@@ -45,11 +48,13 @@ void loadFile(char* path, float** matrix, int* size){
                 exit(EXIT_FAILURE);
         }
 
+	lseek(desc, 8, SEEK_SET);
 	//alokacja pamieci do prawidlowego odczytu z pliku
-	char* buf = (char*)malloc(20 * sizeof(char));
-        char* c = (char*)malloc(sizeof(char));
-	
+	//char* buf = (char*)malloc(20 * sizeof(char));
+        //char* c = (char*)malloc(sizeof(char));
+	/*
 	//pomijamy pierwszy wiersz, bo tam jest rozmiar macierzy
+	
 	while(read(desc, c, 1) > 0){
 		if(c[0] == '\n') break;
 	}
@@ -79,8 +84,13 @@ void loadFile(char* path, float** matrix, int* size){
         if(i == size[0]-1){
                 matrix[i][j] = atof(buf);
         }
+*/
+	int i;
+	for(i = 0; i<size[0]; i++){
+		read(desc, matrix[i], 4*size[1]);
+	}
 	//sprzatamy po sobie :)
 	close(desc);
-        free(buf);
-        free(c);
+        //free(buf);
+        //free(c);
 }
