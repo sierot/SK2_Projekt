@@ -84,7 +84,7 @@ int main(int argc, char* argv[]){
 		int sizeA[2];
 		int sizeB[2];		
 		
-		clock_t read_start, read_stop, start, stop, write_start, write_stop;
+		clock_t read_start, read_stop, start, stop, write_start, write_stop, t_stop;
                 read_start = clock();
 		//pobieranie do talbic wartosci z pliku txt (matrixLoader.c)
 		loadSize("Amatrix", sizeA);
@@ -153,20 +153,20 @@ int main(int argc, char* argv[]){
 		
 		//(FOR) do wyliczenia nie potrzebujemy calej tablicy (wystarczy czesc)
 		for(c = 0; c < comp_no; c++){
-			clients_tab[c].privSizeA[0] = tabi[clients_tab[c].client_id][1] - tabi[clients_tab[c].client_id][0] + 1;
-			clients_tab[c].privSizeB[1] = tabj[clients_tab[c].client_id][1] - tabj[clients_tab[c].client_id][0] + 1;
+			clients_tab[c].privSizeA[0] = tabi[c][1] - tabi[c][0] + 1;
+			clients_tab[c].privSizeB[0] = tabj[c][1] - tabj[c][0] + 1;
 		}
 		
 		//(FOR) ale zeby wyliczyc dany element potrzebujemy obu calych wierszy
 		for(c = 0; c < comp_no; c++){
 			clients_tab[c].privSizeA[1] = sizeA[1];
-			clients_tab[c].privSizeB[0] = sizeB[0];
+			clients_tab[c].privSizeB[1] = sizeB[0];
 		}
 		
-		/*for(c = 0; c < comp_no; c++){
+		for(c = 0; c < comp_no; c++){
 			printf("clients_tab[%d].privSizeA: [%d,%d]\n", c, clients_tab[c].privSizeA[0], clients_tab[c].privSizeA[1]);
 			printf("clients_tab[%d].privSizeB: [%d,%d]\n", c, clients_tab[c].privSizeB[0], clients_tab[c].privSizeB[1]);
-		}*/
+		}
 
 		//start liczenia czasu		
 		start = clock();
@@ -176,22 +176,20 @@ int main(int argc, char* argv[]){
 			write(clients_tab[c].c_sck, clients_tab[c].privSizeB, 8);
 		}
 		
-		//wyslanie macierzy A i B element po elemencie
+		//wyslanie macierzy A i B 
 		for(i = 0; i < sizeA[0]; i++){
-			for(j = 0; j < sizeA[1]; j++){
-					for(c = 0; c < comp_no; c++){
-						if((i >= tabi[clients_tab[c].client_id][0]) && (i <= tabi[clients_tab[c].client_id][1]))
-							write(clients_tab[c].c_sck, &matrixA[i][j], 4);
-					}
+			for(c = 0; c < comp_no; c++){
+				if((i >= tabi[clients_tab[c].client_id][0]) && (i <= tabi[clients_tab[c].client_id][1]))
+					write(clients_tab[c].c_sck, matrixA[i], 4*sizeA[1]);
 			}
+			
 		}
-		for(i = 0; i < sizeB[0]; i++){	
-			for(j = 0; j < sizeB[1]; j++){
-				for(c = 0; c < comp_no; c++){
-					if((j >= tabj[clients_tab[c].client_id][0]) && (j <= tabj[clients_tab[c].client_id][1]))
-                                		 write(clients_tab[c].c_sck, &matrixB[i][j], 4);
-				}
+		for(j = 0; j < sizeB[0]; j++){	
+			for(c = 0; c < comp_no; c++){
+				if((j >= tabj[clients_tab[c].client_id][0]) && (j <= tabj[clients_tab[c].client_id][1]))
+                                	 write(clients_tab[c].c_sck, matrixB[j], 4*sizeB[1]);
 			}
+			
 		}
 
 		//dealokacja pamieci macierzy A i B
@@ -201,29 +199,27 @@ int main(int argc, char* argv[]){
 		//alokacja pamieci dla macierzy C
 		float** matrixC = (float**)malloc(sizeA[0] * sizeof(float*));
                 for(i = 0; i<sizeA[0]; i++){
-                        matrixC[i] = (float*)malloc(sizeB[1] * sizeof(float));
+                        matrixC[i] = (float*)malloc(sizeB[0] * sizeof(float));
                 }
 		write_start = clock();
-		//odczyt wartosci wyliczonej macierzy element po elemencie
+		//odczyt wartosci wyliczonej macierzy
                 for(i = 0; i < sizeA[0]; i++){
-                        for(j = 0; j < sizeB[1]; j++){
 					for(c = 0; c < comp_no; c++){
-                                        if((i >= tabi[clients_tab[c].client_id][0]) && (i <= tabi[clients_tab[c].client_id][1]) && (j >= tabj[clients_tab[c].client_id][0]) && (j <= tabj[clients_tab[c].client_id][1]))
-                                                	read(clients_tab[c].c_sck, &matrixC[i][j], 4);
+                                        	if((i >= tabi[clients_tab[c].client_id][0]) && (i <= tabi[clients_tab[c].client_id][1])){
+							read(clients_tab[c].c_sck, matrixC[i]+tabj[c][0], 4*clients_tab[c].privSizeB[0]);
+						}
 					}
-                        }
                 }
 
 		//wyswietlanie macierzy wynikowej C
 		/*printf("\nMatrixC:\n");
 		for(i = 0; i<sizeA[0]; i++){
-                        for(j = 0; j<sizeB[1]; j++){
+                        for(j = 0; j<sizeB[0]; j++){
                                 printf("%f ",  matrixC[i][j]);
                         }
                         printf("\n");
                 }*/
 		write_stop = clock();
-		clock_t t_stop;
 		
 		/*char buf[20];
 		char enter = '\n';
@@ -243,9 +239,9 @@ int main(int argc, char* argv[]){
                         }
                         write(desc, &enter, 1);
                 }*/
-		int desc = open("Cmatrix", O_WRONLY, O_CREAT, 777);
+		int desc = open("Cmatrix", O_WRONLY | O_TRUNC | O_CREAT, 777);
 		for(i = 0; i < sizeA[0]; i++){
-			write(desc, matrixC[i], 4*sizeB[1]);
+			write(desc, matrixC[i], 4*sizeB[0]);
 		}
 		t_stop = clock();
 		printf("Czas przetwarzania: %f sekund.\n", ((double)(t_stop-read_start)/1000000.0));

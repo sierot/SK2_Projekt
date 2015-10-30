@@ -10,8 +10,8 @@ int main(){
   
   int szer[1];
   int wys[1];
-  szer[0] = 1500;
-  wys[0] = 1500;
+  szer[0] = 2000;
+  wys[0] = 2000;
   int i, j;
 
   write(desc, wys, 4);
@@ -29,8 +29,8 @@ int main(){
   //macierz B
   int desc2 = open("Bmatrix", O_WRONLY | O_TRUNC | O_CREAT, 777);
 
-  szer[0] = 1500;
-  wys[0] = 1500;
+  szer[0] = 2000;
+  wys[0] = 2000;
 
   write(desc2, wys, 4);
   write(desc2, szer, 4);
