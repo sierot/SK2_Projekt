@@ -13,9 +13,9 @@ int main(){
   int szer[1];
   int wys[1];
   //liczba wierszy macierzy A
-  wys[0] = 1000;
+  wys[0] = 1200;
   //liczba kolumn macierzy A
-  szer[0] = 1000;
+  szer[0] = 1200;
   int i, j;
 
   write(desc, wys, 4);
@@ -24,7 +24,7 @@ int main(){
   float* buff = (float*) malloc (szer[0]*sizeof(float));  
   for(i = 0; i < wys[0]; i++){
       for(j = 0; j < szer[0]; j++){
-		buff[j] = 0.0;//(float)rand()/(float)(RAND_MAX/0.2);
+		buff[j] = (float)rand()/(float)(RAND_MAX/0.2);
 	}
 	write(desc, buff, 4*szer[0]);
   }
@@ -33,9 +33,9 @@ int main(){
   //macierz B
   int desc2 = open("Bmatrix", O_WRONLY | O_TRUNC | O_CREAT, 0666);
   //liczba wierszy macierzy B
-  wys[0] = 1000;
+  wys[0] = 1200;
   //liczba kolumn macierzy B
-  szer[0] = 1000;
+  szer[0] = 1200;
 
   write(desc2, wys, 4);
   write(desc2, szer, 4);
@@ -43,7 +43,7 @@ int main(){
   float* buff2 = (float*) malloc (szer[0]*sizeof(float));
   for(i = 0; i < wys[0]; i++){
       for(j = 0; j < szer[0]; j++){
-        	buff2[j] = 0.0;//(float)rand()/(float)(RAND_MAX/0.2);
+        	buff2[j] = (float)rand()/(float)(RAND_MAX/0.2);
         }
 	write(desc2, buff2, 4*szer[0]);
       

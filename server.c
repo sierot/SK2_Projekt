@@ -16,6 +16,7 @@
 
 #define LICZBA_KLIENTOW 1
 #define WSP_PRZYS 1.86
+#define KLASTER 64
 
 struct client{
 	int client_id;
@@ -245,18 +246,24 @@ int main(int argc, char* argv[]){
                 
 		for(c = 0; c < comp_no; c++){
 			for(i = tabi[c][0]; i <= tabi[c][1]; i++){	
+			  
 				while(sum < 4*clients_tab[c].privSizeB[0]){
 				  //pobieramy kawalek wiersza (od tabj[c][0]) 
-				  sum_temp = read(sck_tab[c], (matrixC[i] + tabj[c][0] + sum/4), 1000);
+				  sum_temp = read(sck_tab[c], (matrixC[i] + tabj[c][0] + sum/4), KLASTER);
 				  //jesli calego nie wczytamy to reszte musimy doczytac pozniej w odpowiednie miejsce
 				  if(sum_temp > 0){
+				    if(sum_temp%4){
+				      printf("\n\nHAHA NIE\n");
+				      exit(EXIT_FAILURE);
+				    }
 				    sum += sum_temp;
 				  }
 				  else{
 				    printf("ERROR c = %d, i = %d read = %d\n", c, i, sum_temp);
-				    //break;
+				    exit(EXIT_FAILURE);
 				  }
 				}
+				
 				pakiety += sum;
 				sum_temp = 0;
 				sum = 0;
@@ -272,9 +279,9 @@ int main(int argc, char* argv[]){
                                 if(matrixC[i][j] != 0)
 				  printf("%f \n",  matrixC[i][j]);
                         }
-                }*/
+                }
 		//wyswietlanie macierzy wynikowej C
-		/*printf("\nMatrixC:\n");
+		printf("\nMatrixC:\n");
 		for(i = 0; i<sizeA[0]; i++){ 
                         for(j = 0; j<sizeB[0]; j++){
                                 printf("%f ",  matrixC[i][j]);
@@ -330,9 +337,9 @@ int main(int argc, char* argv[]){
 		
 		
 		//pozwolenie na zakonczenie polaczenia
-		char ack;
-		for(i = 0; i < comp_no-1; i++)
-		  write(sck_tab[i], &ack, 1);
+		int ack = -1;
+		for(i = 0; i < comp_no; i++)
+		  write(sck_tab[i], &ack, 4);
 		
 		
 //^^^^^^^^^^^^^^ WYSWIETLANIE WYNIKOW ^^^^^^^^^^^^^^
@@ -348,6 +355,19 @@ int main(int argc, char* argv[]){
 		//zamykanie deskryptorow
 		close(desc);
 		
+		/*printf("TERAZ\n");
+		int jeden = 1;
+		int dwa = 2;
+		sleep(3);
+		write(sck_tab[0], &jeden, 4);
+		printf("Wyslalem\n");
+		int re = read(sck_tab[0], &dwa, 4);
+		printf("dwa = %c, re = %d\n", dwa, re);	
+		
+		printf("KONIEC\n");
+		*/
+		
+		
 		for(i = 0; i < comp_no; i++){
 			close(sck_tab[i]);
 			free(tabi[i]);
@@ -358,7 +378,10 @@ int main(int argc, char* argv[]){
 		free(tabj);
 		free(sck_tab);
 		free(clients_tab);
-		while(1){}
+		
+		
+		
+		
 		close(sck);
 		return 0; 
 

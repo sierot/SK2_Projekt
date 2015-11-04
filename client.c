@@ -11,6 +11,8 @@
 #include <time.h>
 #include <omp.h>
 
+#define KLASTER 64
+
 int main(int argc, char* argv[]){
 		
 //vvvvvvvvvvvvvv TWORZENIE POLACZENIA vvvvvvvvvvvvvv
@@ -72,18 +74,52 @@ int main(int argc, char* argv[]){
 		read_start = omp_get_wtime();
 		//odczyt macierzy A i B
 		int pakiety = 0;
+		int sum = 0;
+		int sum_temp = 0;
 		for(i = 0; i < sizeA[0]; i++){
-			read(sck, matrixA[i], 4*sizeA[1]);
-			pakiety += 4*sizeA[1];
+			while(sum < 4*sizeA[1]){
+			  sum_temp = read(sck, (matrixA[i] + sum/4), KLASTER);
+			  if(sum_temp > 0){
+			     if(sum_temp%4){
+			       printf("\n\nHAHA A NIE\n");
+			       exit(EXIT_FAILURE);
+			     }
+			     sum += sum_temp;
+			  }
+			  else{
+			    printf("A ERROR i = %d read = %d\n", i, sum_temp);
+			    exit(EXIT_FAILURE);
+			  }
+			}
+			pakiety += sum;
+			sum = 0;
+			sum_temp = 0;
 		}
 		printf("Odebrane pakiety macierzy A: %dB\n", pakiety);
 		pakiety = 0;
+		sum = 0;
 		for(j = 0; j < sizeB[0]; j++){
-			read(sck, matrixB[j], 4*sizeB[1]);
-			pakiety += 4*sizeB[1];
+			while(sum < 4*sizeB[1]){
+			  sum_temp = read(sck, (matrixB[j] + sum/4), KLASTER);
+			  if(sum_temp > 0){
+			     if(sum_temp%4){
+			       printf("\n\nHAHA B NIE\n");
+			       exit(EXIT_FAILURE);
+			     }
+			     sum += sum_temp;
+			  }
+			  else{
+			    printf("B ERROR j = %d read = %d\n", j, sum_temp);
+			    exit(EXIT_FAILURE);
+			  }
+			}
+			pakiety += sum;
+			sum = 0;
+			sum_temp = 0;
 		}
 		printf("Odebrane pakiety macierzy B: %dB\n", pakiety);
 		pakiety = 0;
+		sum = 0;
 		read_stop = omp_get_wtime();
 		//wyswietlanie macierzy A i B
 		/*printf("\nMatrixA:\n");
@@ -144,7 +180,7 @@ int main(int argc, char* argv[]){
 		
 		write_start = omp_get_wtime();
 		//wysylanie macierzy wynikowej C
-		int sum = 0;
+		sum = 0;
 		for(i = 0; i<sizeA[0]; i++){
 			sum += write(sck, matrixC[i], 4* sizeB[0]);
 			pakiety += 4* sizeB[0];
@@ -183,16 +219,18 @@ int main(int argc, char* argv[]){
 		free(matrixC);		
 		//sleep(2);
 		//pozwolenie na zakonczenie polaczenia
-		char ack[100];
-		int re = read(sck, &ack, 100);
-		printf("KUPA = %d\n", re);
-		re = read(sck, &ack, 1);
-		while(re <= 0){
-		  re = read(sck, &ack, 1);
-		  //printf("read = %d\n", re);
+		int ack = 1;
+		//lseek(sck, 0, SEEK_END);
+		int re = read(sck, &ack, 4);
+		printf("read = %d, ack = %d\n", re, ack);
+		i = 0;
+		while(ack != -1){
+		  i++;
+		  read(sck, &ack, 4);
 		}
+		printf("A teraz ack = %d, i = %d\n", ack, i);
 		close(sck);
-		
+		//shutdown(sck, 0);
 		return 0; 
 
 } 
