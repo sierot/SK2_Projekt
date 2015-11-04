@@ -6,6 +6,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <unistd.h>
 
 void loadFile(char* , float** , int*);
 void loadSize(char* , int*);

@@ -3,15 +3,19 @@
 #include <string.h>
 #include <time.h>
 #include <fcntl.h>
+#include <unistd.h>
+
 int main(){
   
   //macierz A
-  int desc = open("Amatrix", O_WRONLY | O_TRUNC | O_CREAT, 777);
+  int desc = open("Amatrix", O_WRONLY | O_TRUNC | O_CREAT, 0666);
   
   int szer[1];
   int wys[1];
-  szer[0] = 2000;
-  wys[0] = 2000;
+  //liczba wierszy macierzy A
+  wys[0] = 1000;
+  //liczba kolumn macierzy A
+  szer[0] = 1000;
   int i, j;
 
   write(desc, wys, 4);
@@ -20,17 +24,18 @@ int main(){
   float* buff = (float*) malloc (szer[0]*sizeof(float));  
   for(i = 0; i < wys[0]; i++){
       for(j = 0; j < szer[0]; j++){
-		buff[j] = (float)rand()/(float)(RAND_MAX/1.2);
+		buff[j] = 0.0;//(float)rand()/(float)(RAND_MAX/0.2);
 	}
 	write(desc, buff, 4*szer[0]);
   }
   close(desc);
   free(buff);
   //macierz B
-  int desc2 = open("Bmatrix", O_WRONLY | O_TRUNC | O_CREAT, 777);
-
-  szer[0] = 2000;
-  wys[0] = 2000;
+  int desc2 = open("Bmatrix", O_WRONLY | O_TRUNC | O_CREAT, 0666);
+  //liczba wierszy macierzy B
+  wys[0] = 1000;
+  //liczba kolumn macierzy B
+  szer[0] = 1000;
 
   write(desc2, wys, 4);
   write(desc2, szer, 4);
@@ -38,7 +43,7 @@ int main(){
   float* buff2 = (float*) malloc (szer[0]*sizeof(float));
   for(i = 0; i < wys[0]; i++){
       for(j = 0; j < szer[0]; j++){
-        	buff2[j] = (float)rand()/(float)(RAND_MAX/1.2);
+        	buff2[j] = 0.0;//(float)rand()/(float)(RAND_MAX/0.2);
         }
 	write(desc2, buff2, 4*szer[0]);
       

@@ -1,9 +1,9 @@
 all: serv client gen
 
 serv: server.c matrixLoader.c division.c
-	gcc server.c matrixLoader.c division.c -lm -o serv
+	gcc -fopenmp server.c matrixLoader.c division.c -lm -o serv -Wall
 
 client: client.c
-	gcc -fopenmp client.c -o client
+	gcc -fopenmp client.c -o client -Wall
 gen: matrixgen.c
-	gcc matrixgen.c -o gen
+	gcc matrixgen.c -o gen -Wall

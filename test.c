@@ -1,42 +1,53 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <fcntl.h>
-#include <errno.h>
+#include <unistd.h>
 
 int main(){
+  
+  //macierz A
+  int desc = open("Amatrix", O_WRONLY | O_TRUNC | O_CREAT, 0666);
+  
+  int szer[1];
+  int wys[1];
+  wys[0] = 4;
+  szer[0] = 6;
+  int i, j;
 
-	float** matrixA = (float**)malloc(11 * sizeof(float*));
-        int i;
-        for(i = 0; i<11; i++){
-        	matrixA[i] = (float*)malloc(4 * sizeof(float));
-        }
+  write(desc, wys, 4);
+  write(desc, szer, 4);
 
-
-	int descA = open("Bmatrix", O_RDONLY);
-        if(descA < 0){
-                printf("ERROR (descA): %s\n", strerror(errno));
-                exit(EXIT_FAILURE);
-        }
-
-	int tab[2];
-	read(descA, tab, 8);
-	printf("%d\n", tab[0]);
-	printf("%d\n", tab[1]);
-        
-	for(i = 0; i < tab[0]; i++){
-		read(descA, matrixA[i], 4*tab[1]);
-	 }
+  float* buff = (float*) malloc (szer[0]*sizeof(float));  
+  for(i = 0; i < wys[0]; i++){
+      for(j = 0; j < szer[0]; j++){
+		buff[j] = i*4 + j;
 	
-	int j;
-	for(i = 0; i < tab[0]; i++){
-		for(j = 0; j < tab[1]; j++){
-			printf("%f ", matrixA[i][j]);
-		}
-		printf("\n");
+		//buff[j] = 0.0;//(float)rand()/(float)(RAND_MAX/0.2);
 	}
-	free(matrixA);
-	close(descA);
-	return 0;
+	write(desc, buff, 4*szer[0]);
+  }
+  close(desc);
+  free(buff);
+  //macierz B
+  int desc2 = open("Bmatrix", O_WRONLY | O_TRUNC | O_CREAT, 0666);
+  wys[0] = 4;
+  szer[0] = 6;
 
+  write(desc2, wys, 4);
+  write(desc2, szer, 4);
+
+  float* buff2 = (float*) malloc (szer[0]*sizeof(float));
+  for(i = 0; i < wys[0]; i++){
+      for(j = 0; j < szer[0]; j++){
+		  buff2[j] = i*4 + j;
+	  //buff2[j] = 0.0;//(float)rand()/(float)(RAND_MAX/0.2);
+        }
+	write(desc2, buff2, 4*szer[0]);
+      
+  }
+  free(buff2);
+  close(desc2);
+  return 0;
 }
