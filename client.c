@@ -11,8 +11,6 @@
 #include <time.h>
 #include <omp.h>
 
-#define KLASTER 64
-
 int main(int argc, char* argv[]){
 		
 //vvvvvvvvvvvvvv TWORZENIE POLACZENIA vvvvvvvvvvvvvv
@@ -78,11 +76,14 @@ int main(int argc, char* argv[]){
 		int sum_temp = 0;
 		for(i = 0; i < sizeA[0]; i++){
 			while(sum < 4*sizeA[1]){
-			  sum_temp = read(sck, (matrixA[i] + sum/4), KLASTER);
+			  sum_temp = read(sck, (matrixA[i] + sum/4), (4*sizeA[1]-sum));
 			  if(sum_temp > 0){
-			     if(sum_temp%4){
-			       printf("\n\nHAHA A NIE\n");
-			       exit(EXIT_FAILURE);
+			     //jezeli wczytalismy nie pelnego floata (4B) to musimy doczytac do 4B
+			     while(sum_temp%4 != 0){
+				void* v = matrixA[i] + sum/4 + sum_temp/4;
+				v = v + (sum_temp%4);
+				int sum_temp_temp = read(sck, v, (4 - sum_temp%4));
+				sum_temp += sum_temp_temp;
 			     }
 			     sum += sum_temp;
 			  }
@@ -100,11 +101,13 @@ int main(int argc, char* argv[]){
 		sum = 0;
 		for(j = 0; j < sizeB[0]; j++){
 			while(sum < 4*sizeB[1]){
-			  sum_temp = read(sck, (matrixB[j] + sum/4), KLASTER);
+			  sum_temp = read(sck, (matrixB[j] + sum/4), (4*sizeB[1]-sum));
 			  if(sum_temp > 0){
-			     if(sum_temp%4){
-			       printf("\n\nHAHA B NIE\n");
-			       exit(EXIT_FAILURE);
+			     if(sum_temp%4 != 0){
+				void* v = matrixB[j] + sum/4 + sum_temp/4;
+				v = v + (sum_temp%4);
+				int sum_temp_temp = read(sck, v, (4 - sum_temp%4));
+				sum_temp += sum_temp_temp;
 			     }
 			     sum += sum_temp;
 			  }
@@ -180,12 +183,11 @@ int main(int argc, char* argv[]){
 		
 		write_start = omp_get_wtime();
 		//wysylanie macierzy wynikowej C
-		sum = 0;
+		pakiety = 0;
 		for(i = 0; i<sizeA[0]; i++){
-			sum += write(sck, matrixC[i], 4* sizeB[0]);
-			pakiety += 4* sizeB[0];
+			pakiety += write(sck, matrixC[i], 4* sizeB[0]);
 		}
-		printf("Sum = %d\n", sum);
+		//printf("Sum = %d\n", sum);
 		printf("Wyslane pakiety macierzy C: %dB\n", pakiety);
 		
 
@@ -217,20 +219,13 @@ int main(int argc, char* argv[]){
 		free(matrixA);
 		free(matrixB);
 		free(matrixC);		
-		//sleep(2);
-		//pozwolenie na zakonczenie polaczenia
+		//czekanie na pozwolenie na zakonczenie polaczenia
 		int ack = 1;
-		//lseek(sck, 0, SEEK_END);
-		int re = read(sck, &ack, 4);
-		printf("read = %d, ack = %d\n", re, ack);
-		i = 0;
+		read(sck, &ack, 4);
 		while(ack != -1){
-		  i++;
 		  read(sck, &ack, 4);
 		}
-		printf("A teraz ack = %d, i = %d\n", ack, i);
 		close(sck);
-		//shutdown(sck, 0);
 		return 0; 
 
 } 

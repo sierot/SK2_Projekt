@@ -2,6 +2,7 @@
     Równoległe mnożenie macierzy na wielu klientach. Wykorzystanie wszystkich procesorów klienta.
     
 2. Opis protokołu:
+    Użyty został protokół IPv4
     Serwer tworzy gniazdo, następnie wiąże je z deskryptorem i rozpoczyna nasłuchiwanie.
     Klient tworzy gniazdo, następnie łączy się z serwerem.
     Gdy wymagana ilość klientów się połączy, serwer wysyła lokalne rozmiary macierzy do klientów.
@@ -9,18 +10,34 @@
     Serwer wysyła odpowiednie wiersze macierzy do klientów.
     Klient odbiera.
     Klient wysyła wiersze lokalnej macierzy wynikowej.
+    Klient czeka na potwierdzenie, że serwer odczytał dane wynikowe.
     Serwer odbiera.
-    Zakonczenie połącznenia.
+    Serwer wysyła potwierdzenie odbioru do klienta.
+    Zakonczenie połącznenia przez serwer lub klienta.
 
 3. Ogolny model implementacji:
     Kod źródlowy serwera to server.c, wykorzystuje on matrixLoader.c do wczytywania macierzy z pliku oraz division.c do podzielenia macierzy w zależności od liczby klientów.
     Kod źródlowy klienta to client.c. Klient jest samowystarczalny. Używa on OpenMP do zrównoleglenia obliczeń związanych z mnożeniem macierzy.
 
-4. Jak uzywać?
-    (Opcjonalnie) W pliku matrixgen.c ustawic liczbe wierszy i kolumn mnożonych macierzy. 
+4. Jak uzywać? 
     Skompilować za pomocą make.
-    Wygenerować macierze uruchamiając plik 'gen'. (Tworzą się 2 pliki: 'Amatrix' i 'Bmatrix')
+    Wygenerować macierze uruchamiając plik 'gen' z atrybutami kolejno: 
+      - Liczba wierszy macierzy A
+      - Liczba kolumn macierzy A
+      - Liczba wierszy macierzy B
+      - Liczba kolumn macierzy B
+     (Tworzą się 2 pliki: 'Amatrix' i 'Bmatrix')
+    
     Uruchomić plik 'serv' z argumentem ilości klientów, ktorzy mają się podłączyć. Brak argumentu spowoduje ustawienie liczby klientów na 1.
     Kolejno uruchamiać klientów z argumentem IPv4 serwera.
     Po zakończeniu programu wynikowa macierz znajduję się w pliku 'Cmatrix'.
     W pliku 'Czasy.txt' dopisane zostały uzyskane czasy.
+
+    Informacje dodatkowe:
+    !!! W zadaniu przyjęto, że Bmatrix jest macierzą transponowaną.
+    
+    Pliki macierzowe (Amatrix, Bmatrix, Cmatrix) są plikami binarnymi.
+    Format tych plików:
+      2 integery określają rozmiar macierzy.
+      Reszta to floaty jeden po drugim (wczytujemy wierszami).
+    

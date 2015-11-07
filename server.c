@@ -16,7 +16,6 @@
 
 #define LICZBA_KLIENTOW 1
 #define WSP_PRZYS 1.86
-#define KLASTER 64
 
 struct client{
 	int client_id;
@@ -27,6 +26,23 @@ struct client{
 
 int main(int argc, char* argv[]){
 		
+//vvvvvvvvvvvvvv SPRAWDZANIE WARUNKU MNOZENIA MACIERZY vvvvvvvvvvvvvv
+  
+  		//tablice przechowujace rozmiar macierzy A i B
+		int sizeA[2];
+		int sizeB[2];		
+		//pobieranie do talbic wielkosci macierzy z pliku txt (matrixLoader.c)
+		loadSize("Amatrix", sizeA);
+                loadSize("Bmatrix", sizeB);
+  
+		//warunek konieczny mnozenia macierzy
+		if(sizeA[1] != sizeB[1]){
+			printf("ERROR: Nie moge pomnozyc macierzy o takich wymiarach: [%d,%d] x [%d,%d]\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
+			exit(EXIT_FAILURE);
+		}
+		
+//^^^^^^^^^^^^^^ SPRAWDZANIE WARUNKU MNOZENIA MACIERZY ^^^^^^^^^^^^^^
+  
 //vvvvvvvvvvvvvv TWORZENIE POLACZENIA vvvvvvvvvvvvvv
   
 		//tworzenie gniazda (otrzymanie deskryptora sck)
@@ -94,24 +110,8 @@ int main(int argc, char* argv[]){
 
 //vvvvvvvvvvvvvv PRZYGOTOWANIE MACIERZY vvvvvvvvvvvvvv
 		
-		//tablice przechowujace rozmiar macierzy A i B
-		int sizeA[2];
-		int sizeB[2];		
-		
-		//liczenie czasu trza zmienic
 		double read_start, read_stop, start, stop, write_start, write_stop, t_stop;
                 read_start = omp_get_wtime();
-		//pobieranie do talbic wartosci z pliku txt (matrixLoader.c)
-		loadSize("Amatrix", sizeA);
-                loadSize("Bmatrix", sizeB);
-
-		//warunek konieczny mnozenia macierzy
-		if(sizeA[1] != sizeB[1]){
-			printf("ERROR: Nie moge pomnozyc macierzy o takich wymiarach %d, %d", sizeA[1], sizeB[0]);
-        	        close(sck);
-	                close(clients_tab[0].c_sck);
-			exit(EXIT_FAILURE);
-		}
 
 		//alokowanie pamieci dla macierzy A
 		float** matrixA = (float**)malloc(sizeA[0] * sizeof(float*));
@@ -249,12 +249,15 @@ int main(int argc, char* argv[]){
 			  
 				while(sum < 4*clients_tab[c].privSizeB[0]){
 				  //pobieramy kawalek wiersza (od tabj[c][0]) 
-				  sum_temp = read(sck_tab[c], (matrixC[i] + tabj[c][0] + sum/4), KLASTER);
+				  sum_temp = read(sck_tab[c], (matrixC[i] + tabj[c][0] + sum/4), (4*clients_tab[c].privSizeB[0]-sum));
 				  //jesli calego nie wczytamy to reszte musimy doczytac pozniej w odpowiednie miejsce
 				  if(sum_temp > 0){
-				    if(sum_temp%4){
-				      printf("\n\nHAHA NIE\n");
-				      exit(EXIT_FAILURE);
+				    //jesli wczytalismy niepelego floata (4B) to musimy doczytac do 4B
+				    if(sum_temp%4 != 0){
+				      void* v = matrixC[i] + tabj[c][0] + sum/4 + sum_temp/4;
+				      v = v + (sum_temp%4);
+				      int sum_temp_temp = read(sck_tab[c], v, (4 - sum_temp%4));
+				      sum_temp += sum_temp_temp;
 				    }
 				    sum += sum_temp;
 				  }
@@ -265,6 +268,7 @@ int main(int argc, char* argv[]){
 				}
 				
 				pakiety += sum;
+				//printf("pakiety = %d\n", pakiety);
 				sum_temp = 0;
 				sum = 0;
 			}
@@ -273,15 +277,9 @@ int main(int argc, char* argv[]){
                 
 
 		printf("Dane z macierzy C: %dB\n", pakiety);
-		
-		/*for(i = 0; i<sizeA[0]; i++){
-                        for(j = 0; j<sizeB[0]; j++){
-                                if(matrixC[i][j] != 0)
-				  printf("%f \n",  matrixC[i][j]);
-                        }
-                }
+
 		//wyswietlanie macierzy wynikowej C
-		printf("\nMatrixC:\n");
+		/*printf("\nMatrixC:\n");
 		for(i = 0; i<sizeA[0]; i++){ 
                         for(j = 0; j<sizeB[0]; j++){
                                 printf("%f ",  matrixC[i][j]);
@@ -355,19 +353,6 @@ int main(int argc, char* argv[]){
 		//zamykanie deskryptorow
 		close(desc);
 		
-		/*printf("TERAZ\n");
-		int jeden = 1;
-		int dwa = 2;
-		sleep(3);
-		write(sck_tab[0], &jeden, 4);
-		printf("Wyslalem\n");
-		int re = read(sck_tab[0], &dwa, 4);
-		printf("dwa = %c, re = %d\n", dwa, re);	
-		
-		printf("KONIEC\n");
-		*/
-		
-		
 		for(i = 0; i < comp_no; i++){
 			close(sck_tab[i]);
 			free(tabi[i]);
@@ -378,9 +363,6 @@ int main(int argc, char* argv[]){
 		free(tabj);
 		free(sck_tab);
 		free(clients_tab);
-		
-		
-		
 		
 		close(sck);
 		return 0; 

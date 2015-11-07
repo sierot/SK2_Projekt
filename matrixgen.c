@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-int main(){
+int main(int argc, char* argv[]){
   
   //macierz A
   int desc = open("Amatrix", O_WRONLY | O_TRUNC | O_CREAT, 0666);
@@ -13,9 +13,9 @@ int main(){
   int szer[1];
   int wys[1];
   //liczba wierszy macierzy A
-  wys[0] = 1200;
+  wys[0] = atoi(argv[1]);
   //liczba kolumn macierzy A
-  szer[0] = 1200;
+  szer[0] = atoi(argv[2]);
   int i, j;
 
   write(desc, wys, 4);
@@ -33,9 +33,9 @@ int main(){
   //macierz B
   int desc2 = open("Bmatrix", O_WRONLY | O_TRUNC | O_CREAT, 0666);
   //liczba wierszy macierzy B
-  wys[0] = 1200;
+  wys[0] = atoi(argv[3]);
   //liczba kolumn macierzy B
-  szer[0] = 1200;
+  szer[0] = atoi(argv[4]);
 
   write(desc2, wys, 4);
   write(desc2, szer, 4);
