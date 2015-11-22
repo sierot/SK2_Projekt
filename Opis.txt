@@ -1,23 +1,26 @@
 1. Treść zadania:
-    Równoległe mnożenie macierzy na wielu klientach. Wykorzystanie wszystkich procesorów klienta.
+    Równoległe mnożenie macierzy na wielu serwerach. Wykorzystanie wszystkich procesorów serwera.
     
 2. Opis protokołu:
-    Użyty został protokół IPv4
+    Użyty został protokół IPv4.
     Serwer tworzy gniazdo, następnie wiąże je z deskryptorem i rozpoczyna nasłuchiwanie.
     Klient tworzy gniazdo, następnie łączy się z serwerem.
-    Gdy wymagana ilość klientów się połączy, serwer wysyła lokalne rozmiary macierzy do klientów.
-    Klient odbiera.
-    Serwer wysyła odpowiednie wiersze macierzy do klientów.
-    Klient odbiera.
-    Klient wysyła wiersze lokalnej macierzy wynikowej.
-    Klient czeka na potwierdzenie, że serwer odczytał dane wynikowe.
+    Klient wysyła lokalne (dla serwera) rozmiary macierzy do serwerów.
     Serwer odbiera.
-    Serwer wysyła potwierdzenie odbioru do klienta.
+    Klient wysyła odpowiednie wiersze macierzy do serwerów.
+    Serwer odbiera.
+    Serwer wysyła wiersze lokalnej macierzy wynikowej.
+    Serwer czeka na potwierdzenie, że klient odczytał dane wynikowe.
+    Klient odbiera.
+    Klient wysyła potwierdzenie odbioru do serwera.
     Zakonczenie połącznenia przez serwer lub klienta.
-
+    Serwer oczekuję na kolejne połączenie.
+  
 3. Ogolny model implementacji:
-    Kod źródlowy serwera to server.c, wykorzystuje on matrixLoader.c do wczytywania macierzy z pliku oraz division.c do podzielenia macierzy w zależności od liczby klientów.
-    Kod źródlowy klienta to client.c. Klient jest samowystarczalny. Używa on OpenMP do zrównoleglenia obliczeń związanych z mnożeniem macierzy.
+    Kod źródlowy clienta to client.c, wykorzystuje on matrixLoader.c do wczytywania macierzy z pliku
+    oraz division.c do podzielenia macierzy w zależności od liczby serwerow.
+    Kod źródlowy klienta to server.c. Serwer jest samowystarczalny. Używa on OpenMP do zrównoleglenia
+    obliczeń związanych z mnożeniem macierzy.
 
 4. Jak uzywać? 
     Skompilować za pomocą make.
@@ -28,8 +31,10 @@
       - Liczba kolumn macierzy B
      (Tworzą się 2 pliki: 'Amatrix' i 'Bmatrix')
     
-    Uruchomić plik 'serv' z argumentem ilości klientów, ktorzy mają się podłączyć. Brak argumentu spowoduje ustawienie liczby klientów na 1.
-    Kolejno uruchamiać klientów z argumentem IPv4 serwera.
+    Uruchomić plik 'serv'.
+    Uruchomić plik 'client' z argumentem ilosci serwerów. Brak argumentu spowoduje ustawienie liczby
+    serwerów na 1.
+    Kolejne IP serwerów pobierane są z pliku tekstowego 'adresy'.
     Po zakończeniu programu wynikowa macierz znajduję się w pliku 'Cmatrix'.
     W pliku 'Czasy.txt' dopisane zostały uzyskane czasy.
 
