@@ -32,17 +32,12 @@
      (Tworzą się 2 pliki: 'Amatrix' i 'Bmatrix')
     
     Uruchomić plik 'serv'.
-    Uruchomić plik 'client' z argumentem ilosci serwerów. Brak argumentu spowoduje ustawienie liczby
-    serwerów na 1.
-    Kolejne IP serwerów pobierane są z pliku tekstowego 'adresy'.
-    Po zakończeniu programu wynikowa macierz znajduję się w pliku 'Cmatrix'.
-    W pliku 'Czasy.txt' dopisane zostały uzyskane czasy.
+    Uruchomić plik 'client'. (przełącznik -h wyswietli wszystkie opcje) 
 
     Informacje dodatkowe:
     !!! W zadaniu przyjęto, że Bmatrix jest macierzą transponowaną.
     
-    Pliki macierzowe (Amatrix, Bmatrix, Cmatrix) są plikami binarnymi.
+    Pliki macierzowe są plikami binarnymi.
     Format tych plików:
       2 integery określają rozmiar macierzy.
       Reszta to floaty jeden po drugim (wczytujemy wierszami).
-    

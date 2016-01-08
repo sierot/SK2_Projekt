@@ -32,6 +32,7 @@ struct option long_options[] =
   {"port",    		required_argument, NULL, 'p'},
   {"statistics",    	no_argument, NULL, 's'},
   {"stats",    		no_argument, NULL, 's'},
+  {"help",    		no_argument, NULL, 'h'},
   {0, 0, 0, 0}
 };
 
@@ -54,7 +55,7 @@ int main(int argc, char* argv[]){
 		int stats = 0;
 
 		int gopt; //cala magia getopt
-		while ((gopt = getopt_long (argc, argv, "A:B:C:a:f:n:p:s", long_options, NULL)) != -1){
+		while ((gopt = getopt_long (argc, argv, "A:B:C:a:f:n:p:sh", long_options, NULL)) != -1){
 		    switch (gopt){
 		      case 'A':
 			Apath = optarg;
@@ -80,6 +81,18 @@ int main(int argc, char* argv[]){
 		      case 's':
 			stats = 1;
 			break;
+		      case 'h':
+			printf("-A [--Amatrix] arg (arg jest sciezka do pierwszej macierzy)\n-B [--Bmatrix] arg (arg jest sciezka do drugiej macierzy)\n");
+			printf("-C [--Cmatrix] arg (arg jest sciezka do zapisu wynikowej macierzy)\n-a [--addresses] arg (arg jest sciezka do pliku z adresami serwerow)\n");
+			printf("-f [--first] arg (arg jest liczba od ktorego serwera z listy adresow zaczac)\n");
+			printf("-n [--numberofservers] arg (arg jest liczba serwerow na ktorych maja byc obliczenia)\n");
+			printf("-p [--port] arg (arg jest porem serwerow)\n-s [--stats, --statistics] (po wykonaniu obliczen zostana pokazane statystyki)\n");
+		        exit(1);
+			break;
+		      default:
+			printf("Aby zobaczyc pomoc wpisz -h lub --help.\n");
+			exit(1);
+				
 		    }
 		}	
 		
@@ -139,11 +152,11 @@ int main(int argc, char* argv[]){
 				printf("ERROR (cnct[%d]): %d %s\n", i, errno, strerror(errno));
 				exit(EXIT_FAILURE);
 			}else{
-				printf("Server 1: %s", server);
+				if(stats) printf("Server 1:\t\t\t %s", server);
 			}
 			
 		}
-		printf("\n");
+		if(stats) printf("\n");
 		free(adr);
 		fclose(input);
 		
@@ -224,11 +237,11 @@ int main(int argc, char* argv[]){
 		
 		if(stats){
 		  for(c = 0; c < serv_num; c++){
-			  printf("Rozmiar macierzy servera %d: A = [%d,%d] B = [%d,%d]\n", c+atoi(ServerStart),
+			  printf("Rozmiar macierzy servera %d:\t A = [%d,%d] B = [%d,%d]\n", c+atoi(ServerStart),
 				servers_tab[c].privSizeA[0], servers_tab[c].privSizeA[1], servers_tab[c].privSizeB[0], servers_tab[c].privSizeB[1]);
 		  }
 		}
-		printf("\n");
+		if(stats) printf("\n");
 //^^^^^^^^^^^^^^ PRZYGOTOWANIE MACIERZY ^^^^^^^^^^^^^^
 
 //vvvvvvvvvvvvvv WYSYLANIE MACIERZY vvvvvvvvvvvvvv
@@ -252,7 +265,15 @@ int main(int argc, char* argv[]){
 			}
 			
 		}
-		if(stats) printf("Wyslane dane macierzy A: %dB\n", pakiety);
+		if(stats){
+		  if(pakiety < 10000){
+		    printf("Wyslane dane macierzy A:\t %dB\n", pakiety);
+		  }else if(pakiety < 10000000){
+		    printf("Wyslane dane macierzy A:\t %dKB\n", (int)(pakiety/1000)); 
+		  }else{
+		    printf("Wyslane dane macierzy A:\t %dMB\n", (int)(pakiety/1000000));
+		  }
+		}
 		pakiety = 0;
 		sum = 0;
 		for(j = 0; j < sizeB[0]; j++){	
@@ -264,7 +285,15 @@ int main(int argc, char* argv[]){
 			}
 			
 		}
-		if (stats) printf("Wyslane dane macierzy B: %dB\n", pakiety);
+		if(stats){
+		  if(pakiety < 10000){
+		    printf("Wyslane dane macierzy B:\t %dB\n", pakiety);
+		  }else if(pakiety < 10000000){
+		    printf("Wyslane dane macierzy B:\t %dKB\n", (int)(pakiety/1000)); 
+		  }else{
+		    printf("Wyslane dane macierzy B:\t %dMB\n", (int)(pakiety/1000000));
+		  }
+		}
 		stop = omp_get_wtime();
 		
 		//dealokacja pamieci macierzy A i B
@@ -322,8 +351,16 @@ int main(int argc, char* argv[]){
 		}
                 
 
-		if(stats) printf("Pobrane dane z macierzy C: %dB\n\n", pakiety);
 
+		if(stats){
+		  if(pakiety < 10000){
+		    printf("Pobrane dane z macierzy C:\t %dB\n\n", pakiety);
+		  }else if(pakiety < 10000000){
+		    printf("Pobrane dane z macierzy C:\t %dKB\n\n", (int)(pakiety/1000)); 
+		  }else{
+		    printf("Pobrane dane z macierzy C:\t %dmB\n\n", (int)(pakiety/1000000));
+		  }
+		}
 		//wyswietlanie macierzy wynikowej C
 		/*printf("\nMatrixC:\n");
 		for(i = 0; i<sizeA[0]; i++){ 
@@ -354,34 +391,34 @@ int main(int argc, char* argv[]){
 		}
 		double time_sum = 0;
 		
-		FILE* plik; 
-		plik = fopen("Czasy.txt", "a");
-		fprintf(plik, "\n");
+		//FILE* plik; 
+		//plik = fopen("Czasy.txt", "a");
+		//fprintf(plik, "\n");
 		//fprintf(plik, "Wielkosc instancji: [%d,%d] x [%d,%d]\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
-		fprintf(plik, "%d;", sizeA[0]);
+		//fprintf(plik, "%d;", sizeA[0]);
 		//printf("Wielkosc instancji: [%d,%d] x [%d,%d]\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
 		//fprintf(plik, "Liczba serwerow: %d\n", serv_num);
 		
 		
 		
 		
-		fprintf(plik, "%f\n", t_stop-read_start);
+		//fprintf(plik, "%f\n", t_stop-read_start);
 		//fprintf(plik, "Aproksymacyjny czas sekwencyjnego przetwarzania: %f\n", WSP_PRZYS*time_sum);
 		//fprintf(plik, "Aproksymacyjny czas komunikacji: %f\n", (t_stop-read_start) - time_sum/serv_num);
 		if(stats){
-		    printf("Wielkosc mnozonych macierzy: [%d,%d] x [%d,%d]\n\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
+		    printf("Wielkosc mnozonych macierzy:\t [%d,%d] x [%d,%d]\n\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
 		    
-		    printf("Czas wczytywania z pliku: %f sekund.\n", read_stop-read_start);
-		    printf("Czas wysylania: %f sekund.\n", stop-start);
-		    printf("Czas odbioru: %f sekund.\n", write_stop-write_start);
-		    printf("Czas zapisu do pliku: %f sekund.\n\n", t_stop-write_stop);
+		    printf("Czas wczytywania z pliku:\t %f sekund.\n", read_stop-read_start);
+		    printf("Czas wysylania:\t\t\t %f sekund.\n", stop-start);
+		    printf("Czas odbioru:\t\t\t %f sekund.\n", write_stop-write_start);
+		    printf("Czas zapisu do pliku:\t\t %f sekund.\n\n", t_stop-write_stop);
 		    for(i = 0; i < serv_num; i++){
 		      //fprintf(plik, "Czas serwera %d: %f\n", i, time_tab[i]);
-		      printf("Czas przetwarzania serwera %d: %f\n", i+atoi(ServerStart), time_tab[i]); 
+		      printf("Czas przetwarzania serwera %d:\t %f sekund.\n", i+atoi(ServerStart), time_tab[i]); 
 		      time_sum += time_tab[i];
 		    }
-		    printf("\nCalkowity czas przetwarzania: %f sekund.\n", t_stop-read_start);
-		    printf("Aproksymacyjny czas stracony na komunikacji: %f\n", (t_stop-read_start) - time_sum/serv_num);
+		    printf("\nCalkowity czas przetwarzania:\t %f sekund.\n", t_stop-read_start);
+		    printf("Sredni czas komunikacji:\t %f sekund.\n", (t_stop-read_start) - time_sum/serv_num);
 		}
 		
 		//pozwolenie na zakonczenie polaczenia
@@ -393,7 +430,7 @@ int main(int argc, char* argv[]){
 //^^^^^^^^^^^^^^ WYSWIETLANIE WYNIKOW ^^^^^^^^^^^^^^
 
 //vvvvvvvvvvvvvv SPRZATANIE vvvvvvvvvvvvvv
-		fclose(plik);
+		//fclose(plik);
 		//dealokacja pamieci macierzy
 		for(i = 0; i < sizeA[0]; i++){
 		  free(matrixC[i]);
