@@ -27,8 +27,8 @@ void divide(int comp_no, int szer, int wys, int** tabi, int** tabj){
                 }
         }
 	
-	printf("Liczba przedzialow wierszy: %d\n", przedzialy[0]);
-        printf("Liczba przedzialow kolumn: %d\n", przedzialy[1]);
+	//printf("Liczba przedzialow wierszy: %d\n", przedzialy[0]);
+        //printf("Liczba przedzialow kolumn: %d\n", przedzialy[1]);
 
         //wyznaczamy szerokosci i wysokosci przedzialow
         int szer_przedz = szer/przedzialy[1];

@@ -10,16 +10,29 @@
 #include <errno.h>
 #include <time.h>
 #include <omp.h>
+#include <getopt.h>
 
 #include "matrixLoader.h"
 #include "division.h"
 
-#define LICZBA_SERVEROW 1
-#define WSP_PRZYS 1.86
-
 struct server{
 	int privSizeA[2];
 	int privSizeB[2];
+};
+
+//struktura potrzebna do dlugich nazw z getopt
+struct option long_options[] =
+{
+  {"Apath",  		required_argument, NULL, 'A'},
+  {"Bpath",  		required_argument, NULL, 'B'},
+  {"Cpath",  		required_argument, NULL, 'C'},
+  {"addresses",  	required_argument, NULL, 'a'},
+  {"firstserver",    	required_argument, NULL, 'f'},
+  {"numberofservers",   required_argument, NULL, 'n'},
+  {"port",    		required_argument, NULL, 'p'},
+  {"statistics",    	no_argument, NULL, 's'},
+  {"stats",    		no_argument, NULL, 's'},
+  {0, 0, 0, 0}
 };
 
 int main(int argc, char* argv[]){
@@ -28,10 +41,51 @@ int main(int argc, char* argv[]){
   
   		//tablice przechowujace rozmiar macierzy A i B
 		int sizeA[2];
-		int sizeB[2];		
+		int sizeB[2];
+		
+		//domysle wartosci do ustawien
+		char* Apath = "Amatrix";
+		char* Bpath = "Bmatrix";
+		char* Cpath = "Cmatrix";
+		char* AdressPath = "adresy";
+		char* ServerStart = "1";
+		char* ServerNum = "1";
+		char* ServersPorts = "23000";
+		int stats = 0;
+
+		int gopt; //cala magia getopt
+		while ((gopt = getopt_long (argc, argv, "A:B:C:a:f:n:p:s", long_options, NULL)) != -1){
+		    switch (gopt){
+		      case 'A':
+			Apath = optarg;
+			break;
+		      case 'B':
+			Bpath = optarg;
+			break;
+		      case 'C':
+			Cpath = optarg;
+			break;
+		      case 'a':
+			AdressPath = optarg;
+			break;
+		      case 'f':
+			ServerStart = optarg;
+			break;
+		      case 'n':
+			ServerNum = optarg;
+			break;
+		      case 'p':
+			ServersPorts = optarg;
+			break;
+		      case 's':
+			stats = 1;
+			break;
+		    }
+		}	
+		
 		//pobieranie do talbic wielkosci macierzy z pliku txt (matrixLoader.c)
-		loadSize("Amatrix", sizeA);
-                loadSize("Bmatrix", sizeB);
+		loadSize(Apath, sizeA);
+                loadSize(Bpath, sizeB);
   
 		//warunek konieczny mnozenia macierzy
 		if(sizeA[1] != sizeB[1]){
@@ -46,18 +100,22 @@ int main(int argc, char* argv[]){
 		//tworzenie struktury potrzebnej do wykonania connect(...)
 		struct sockaddr_in addr;
 		addr.sin_family = AF_INET; //protokol IPv4
-		addr.sin_port = htons(23000); //port
+		addr.sin_port = htons(atoi(ServersPorts)); //port
 		//addr.sin_addr.s_addr = inet_addr(server); //adres IPv4 serwera
 		
 		int i, c;
-		int serv_num = LICZBA_SERVEROW; //liczba serverow
-		if(argv[1] != NULL){
-		  serv_num = atoi(argv[1]);
-		}
+		int serv_num = atoi(ServerNum);
+		
 		int* sck_tab = (int*) malloc (serv_num * sizeof(int));
+				
 		FILE* input;
-		input = fopen("adresy","r");
+		input = fopen(AdressPath,"r");
 		char* adr = (char*) malloc (20 * sizeof(char));
+		
+		for(i = 1; i < atoi(ServerStart); i++){
+		   fgets(adr , 20 , input); 
+		}
+		
 		for(i = 0; i < serv_num; i++){
 			sck_tab[i] = socket(AF_INET, SOCK_STREAM, 0);
 			if (sck_tab[i] < 0){
@@ -81,9 +139,11 @@ int main(int argc, char* argv[]){
 				printf("ERROR (cnct[%d]): %d %s\n", i, errno, strerror(errno));
 				exit(EXIT_FAILURE);
 			}else{
-				printf("Polaczony z serwerem %s", server);
+				printf("Server 1: %s", server);
 			}
+			
 		}
+		printf("\n");
 		free(adr);
 		fclose(input);
 		
@@ -108,8 +168,8 @@ int main(int argc, char* argv[]){
                 }
 
 		//wczytanie macierzy z pliku txt (matrixLoader.c)
-		loadFile("Amatrix", matrixA, sizeA);
-		loadFile("Bmatrix", matrixB, sizeB);
+		loadFile(Apath, matrixA, sizeA);
+		loadFile(Bpath, matrixB, sizeB);
 		read_stop = omp_get_wtime();
 		int j;
 		//wyswietlanie macierzy A i B
@@ -144,9 +204,10 @@ int main(int argc, char* argv[]){
 		//wyliczamy granice serverow (division.c)
 		divide(serv_num, sizeB[0], sizeA[0], tabi, tabj);
 		
-		for(i = 0; i < serv_num; i++)
-		printf("Server %d ma macierz: i:[%d,%d]   j:[%d,%d]\n", i, tabi[i][0], tabi[i][1], tabj[i][0], tabj[i][1]);
-	
+// 		if(stats){
+// 		  for(i = 0; i < serv_num; i++)
+// 		  printf("Server %d ma macierz: i:[%d,%d]   j:[%d,%d]\n", i+atoi(ServerStart), tabi[i][0], tabi[i][1], tabj[i][0], tabj[i][1]);
+// 		}
 		//struktura servera
                 struct server* servers_tab = malloc (serv_num * sizeof(struct server));
 		//(FOR) do wyliczenia nie potrzebujemy calej tablicy (wystarczy dana czesc)
@@ -161,11 +222,13 @@ int main(int argc, char* argv[]){
 			servers_tab[c].privSizeB[1] = sizeB[1];
 		}
 		
-		for(c = 0; c < serv_num; c++){
-			printf("Rozmiar macierzy servera %d: A = [%d,%d] B = [%d,%d]\n", c,
-			       servers_tab[c].privSizeA[0], servers_tab[c].privSizeA[1], servers_tab[c].privSizeB[0], servers_tab[c].privSizeB[1]);
+		if(stats){
+		  for(c = 0; c < serv_num; c++){
+			  printf("Rozmiar macierzy servera %d: A = [%d,%d] B = [%d,%d]\n", c+atoi(ServerStart),
+				servers_tab[c].privSizeA[0], servers_tab[c].privSizeA[1], servers_tab[c].privSizeB[0], servers_tab[c].privSizeB[1]);
+		  }
 		}
-
+		printf("\n");
 //^^^^^^^^^^^^^^ PRZYGOTOWANIE MACIERZY ^^^^^^^^^^^^^^
 
 //vvvvvvvvvvvvvv WYSYLANIE MACIERZY vvvvvvvvvvvvvv
@@ -189,7 +252,7 @@ int main(int argc, char* argv[]){
 			}
 			
 		}
-		printf("Wyslane pakiety macierzy A: %dB\n", pakiety);
+		if(stats) printf("Wyslane dane macierzy A: %dB\n", pakiety);
 		pakiety = 0;
 		sum = 0;
 		for(j = 0; j < sizeB[0]; j++){	
@@ -201,7 +264,7 @@ int main(int argc, char* argv[]){
 			}
 			
 		}
-		printf("Wyslane pakiety macierzy B: %dB\n", pakiety);
+		if (stats) printf("Wyslane dane macierzy B: %dB\n", pakiety);
 		stop = omp_get_wtime();
 		
 		//dealokacja pamieci macierzy A i B
@@ -259,7 +322,7 @@ int main(int argc, char* argv[]){
 		}
                 
 
-		printf("Dane z macierzy C: %dB\n", pakiety);
+		if(stats) printf("Pobrane dane z macierzy C: %dB\n\n", pakiety);
 
 		//wyswietlanie macierzy wynikowej C
 		/*printf("\nMatrixC:\n");
@@ -272,7 +335,7 @@ int main(int argc, char* argv[]){
 		write_stop = omp_get_wtime();
 		
 		//zapis do pliku 
-		int desc = open("Cmatrix", O_WRONLY | O_TRUNC | O_CREAT, 0666);
+		int desc = open(Cpath, O_WRONLY | O_TRUNC | O_CREAT, 0666);
 		for(i = 0; i < sizeA[0]; i++){
 			write(desc, matrixC[i], 4*sizeB[0]);
 		}
@@ -282,10 +345,7 @@ int main(int argc, char* argv[]){
 //vvvvvvvvvvvvvv WYSWIETLANIE WYNIKOW vvvvvvvvvvvvvv
 		
 		t_stop = omp_get_wtime();
-                printf("Czas wczytywania z pliku: %f sekund.\n", read_stop-read_start);
-                printf("Czas wysylania: %f sekund.\n", stop-start);
-                printf("Czas odbioru: %f sekund.\n", write_stop-write_start);
-		printf("Czas zapisu do pliku: %f sekund.\n", t_stop-write_stop);
+                
 		
 		double* time_tab = (double*) malloc (serv_num * sizeof(double));
 		
@@ -297,31 +357,38 @@ int main(int argc, char* argv[]){
 		FILE* plik; 
 		plik = fopen("Czasy.txt", "a");
 		fprintf(plik, "\n");
-		fprintf(plik, "Wielkosc instancji: [%d,%d] x [%d,%d]\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
-		printf("Wielkosc instancji: [%d,%d] x [%d,%d]\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
-		fprintf(plik, "Liczba serwerow: %d\n", serv_num);
-		printf("Liczba serwerow: %d\n", serv_num);
-		for(i = 0; i < serv_num; i++){
-		  fprintf(plik, "Czas serwera %d: %f\n", i, time_tab[i]);
-		  printf("Czas serwera %d: %f\n", i, time_tab[i]); 
-		  time_sum += time_tab[i];
+		//fprintf(plik, "Wielkosc instancji: [%d,%d] x [%d,%d]\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
+		fprintf(plik, "%d;", sizeA[0]);
+		//printf("Wielkosc instancji: [%d,%d] x [%d,%d]\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
+		//fprintf(plik, "Liczba serwerow: %d\n", serv_num);
+		
+		
+		
+		
+		fprintf(plik, "%f\n", t_stop-read_start);
+		//fprintf(plik, "Aproksymacyjny czas sekwencyjnego przetwarzania: %f\n", WSP_PRZYS*time_sum);
+		//fprintf(plik, "Aproksymacyjny czas komunikacji: %f\n", (t_stop-read_start) - time_sum/serv_num);
+		if(stats){
+		    printf("Wielkosc mnozonych macierzy: [%d,%d] x [%d,%d]\n\n", sizeA[0], sizeA[1], sizeB[0], sizeB[1]);
+		    
+		    printf("Czas wczytywania z pliku: %f sekund.\n", read_stop-read_start);
+		    printf("Czas wysylania: %f sekund.\n", stop-start);
+		    printf("Czas odbioru: %f sekund.\n", write_stop-write_start);
+		    printf("Czas zapisu do pliku: %f sekund.\n\n", t_stop-write_stop);
+		    for(i = 0; i < serv_num; i++){
+		      //fprintf(plik, "Czas serwera %d: %f\n", i, time_tab[i]);
+		      printf("Czas przetwarzania serwera %d: %f\n", i+atoi(ServerStart), time_tab[i]); 
+		      time_sum += time_tab[i];
+		    }
+		    printf("\nCalkowity czas przetwarzania: %f sekund.\n", t_stop-read_start);
+		    printf("Aproksymacyjny czas stracony na komunikacji: %f\n", (t_stop-read_start) - time_sum/serv_num);
 		}
 		
-		
-		fprintf(plik, "Czas przetwarzania: %f sekund.\n", t_stop-read_start);
-		fprintf(plik, "Aproksymacyjny czas sekwencyjnego przetwarzania: %f\n", WSP_PRZYS*time_sum);
-		fprintf(plik, "Aproksymacyjny czas komunikacji: %f\n", (t_stop-read_start) - time_sum/serv_num);
-		
-		printf("Czas przetwarzania: %f sekund.\n", t_stop-read_start);
-		printf("Aproksymacyjny czas sekwencyjnego przetwarzania: %f\n", WSP_PRZYS*time_sum);
-		printf("Aproksymacyjny czas komunikacji: %f\n", (t_stop-read_start) - time_sum/serv_num);
-		
-		
 		//pozwolenie na zakonczenie polaczenia
-		int ack = -1;
-		for(i = 0; i < serv_num; i++)
-		  write(sck_tab[i], &ack, 4);
-		
+// 		int ack = -1;
+// 		for(i = 0; i < serv_num; i++)
+// 		  write(sck_tab[i], &ack, 4);
+// 		
 		
 //^^^^^^^^^^^^^^ WYSWIETLANIE WYNIKOW ^^^^^^^^^^^^^^
 

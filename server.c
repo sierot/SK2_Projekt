@@ -21,11 +21,14 @@ int main(int argc, char* argv[]){
 			printf("ERROR (s_sck): %s\n", strerror(errno));
 			exit(EXIT_FAILURE);		
 		}
-
+		char* port = "23000";
+		if(argv[1] != NULL){
+		  port = argv[1];
+		}
 		//tworzorzenie struktury potrzebnej do zwiazania gniazda
 		struct sockaddr_in addr;
                 addr.sin_family = AF_INET; //protokol IPv4
-                addr.sin_port = htons(23000); //port
+                addr.sin_port = htons(atoi(port)); //port
                 addr.sin_addr.s_addr = htonl(INADDR_ANY); //adres IPv4 klienta
 		
 		int nFoo = 1; //dowiedz sie czo to sa za czary
@@ -56,7 +59,7 @@ int main(int argc, char* argv[]){
 			printf("ERROR (sck): %s\n", strerror(errno));
                 	exit(EXIT_FAILURE);
 		    }		
-		
+		    //printf("PORT: %d\n", c_addr.sin_port);
 //^^^^^^^^^^^^^^ TWORZENIE POLACZENIA ^^^^^^^^^^^^^^
 
 //vvvvvvvvvvvvvv PRZYGOTOWANIE MACIERZY vvvvvvvvvvvvvv		
@@ -244,11 +247,11 @@ int main(int argc, char* argv[]){
 		    free(matrixB);
 		    free(matrixC);		
 		    //czekanie na pozwolenie na zakonczenie polaczenia
-		    int ack = 1;
-		    read(sck, &ack, 4);
-		    while(ack != -1){
-		      read(sck, &ack, 4);
-		    }
+// 		    int ack = 1;
+// 		    read(sck, &ack, 4);
+// 		    while(ack != -1){
+// 		      read(sck, &ack, 4);
+// 		    }
 		    close(sck);
 		}
 		close(s_sck);
